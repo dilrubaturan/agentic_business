@@ -1,0 +1,955 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Agentic BPC — Manufacturing | Microsoft Dynamics 365</title>
+
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0a0c10; --surface: #11141a; --surface2: #191d26;
+      --border: #222733; --accent: #4f8ef7; --accent2: #7c5cfc;
+      --green: #1edb8b; --amber: #f5a623; --red: #f75c5c;
+      --text: #e8ecf5; --muted: #7a8299; --dim: #3a4058;
+      --ind: #1edb8b;
+      --font-display: 'Syne', sans-serif;
+      --font-mono: 'DM Mono', monospace;
+      --font-body: 'DM Sans', sans-serif;
+    }
+    *{box-sizing:border-box;margin:0;padding:0;}
+    body{background:var(--bg);color:var(--text);font-family:var(--font-body);min-height:100vh;overflow-x:hidden;}
+
+    header{display:flex;align-items:center;justify-content:space-between;padding:18px 32px;border-bottom:1px solid var(--border);background:var(--surface);}
+    .logo{font-family:var(--font-display);font-size:1.1rem;font-weight:800;letter-spacing:-0.02em;display:flex;align-items:center;gap:10px;}
+    .logo-dot{width:10px;height:10px;border-radius:50%;background:var(--ind);animation:pulse 2s infinite;}
+    @keyframes pulse{0%,100%{opacity:1;transform:scale(1);}50%{opacity:.5;transform:scale(1.3);}}
+    .header-right{display:flex;align-items:center;gap:10px;}
+    .header-badge{font-family:var(--font-mono);font-size:0.68rem;color:var(--ind);background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);padding:4px 12px;border-radius:20px;text-transform:uppercase;letter-spacing:0.08em;}
+    .header-ind{font-family:var(--font-mono);font-size:0.68rem;color:var(--ind);background:rgba(79,142,247,0.06);border:1px solid rgba(79,142,247,0.15);padding:4px 12px;border-radius:20px;}
+
+    .shell{display:grid;grid-template-columns:260px 1fr 320px;height:calc(100vh - 57px);}
+
+    /* SIDEBAR */
+    .sidebar{background:var(--surface);border-right:1px solid var(--border);overflow-y:auto;padding:16px 0;}
+    .sidebar-section{padding:0 16px 8px;font-family:var(--font-mono);font-size:0.6rem;text-transform:uppercase;letter-spacing:0.1em;color:var(--dim);margin-top:12px;}
+    .process-item{display:flex;align-items:center;gap:10px;padding:8px 16px;cursor:pointer;font-size:0.82rem;color:var(--muted);transition:all .15s;border-left:3px solid transparent;}
+    .process-item:hover{background:var(--surface2);color:var(--text);}
+    .process-item.active{background:rgba(79,142,247,0.08);color:var(--accent);border-left-color:var(--accent);}
+    .process-num{font-family:var(--font-mono);font-size:0.65rem;color:var(--dim);min-width:28px;}
+    .process-item.active .process-num{color:var(--accent);opacity:.7;}
+    .process-item-icon{font-size:1rem;}
+
+    /* MAIN */
+    .main{overflow-y:auto;padding:28px 32px;background:var(--bg);}
+    .domain-header{margin-bottom:24px;}
+    .domain-title{font-family:var(--font-display);font-size:1.7rem;font-weight:800;letter-spacing:-0.03em;margin-bottom:6px;}
+    .domain-subtitle{color:var(--muted);font-size:0.85rem;margin-bottom:8px;}
+    .domain-ind-tag{display:inline-flex;align-items:center;gap:6px;font-family:var(--font-mono);font-size:0.62rem;color:var(--ind);background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);padding:3px 10px;border-radius:12px;}
+
+    .orchestration-map{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:24px;}
+    .map-title{font-family:var(--font-mono);font-size:0.65rem;text-transform:uppercase;letter-spacing:0.1em;color:var(--muted);margin-bottom:16px;}
+    .agent-flow{display:flex;align-items:center;gap:0;flex-wrap:wrap;row-gap:8px;}
+    .agent-node{display:flex;flex-direction:column;align-items:center;gap:6px;cursor:pointer;transition:transform .2s;}
+    .agent-node:hover{transform:translateY(-2px);}
+    .agent-icon{width:52px;height:52px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:1.4rem;border:1.5px solid var(--border);background:var(--surface2);transition:all .2s;}
+    .agent-node.active .agent-icon{border-color:var(--accent);box-shadow:0 0 16px rgba(79,142,247,.35);}
+    .agent-node.done .agent-icon{border-color:var(--green);box-shadow:0 0 10px rgba(30,219,139,.2);}
+    .agent-node.running .agent-icon{border-color:var(--amber);box-shadow:0 0 14px rgba(245,166,35,.3);animation:glow 1s ease-in-out infinite alternate;}
+    @keyframes glow{from{box-shadow:0 0 8px rgba(245,166,35,.2);}to{box-shadow:0 0 20px rgba(245,166,35,.5);}}
+    .agent-label{font-size:0.62rem;text-align:center;color:var(--muted);max-width:64px;line-height:1.3;}
+    .agent-node.active .agent-label{color:var(--accent);}
+    .agent-node.done .agent-label{color:var(--green);}
+    .agent-node.running .agent-label{color:var(--amber);}
+    .flow-arrow{color:var(--dim);font-size:1rem;padding:0 4px;align-self:flex-start;margin-top:14px;}
+
+    .steps-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:24px;}
+    .step-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px;cursor:pointer;transition:all .2s;position:relative;overflow:hidden;}
+    .step-card:hover{border-color:var(--accent);transform:translateY(-1px);}
+    .step-card.active{border-color:var(--accent);background:rgba(79,142,247,.06);}
+    .step-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--accent2),var(--accent));opacity:0;transition:opacity .2s;}
+    .step-card.active::before{opacity:1;}
+    .step-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;}
+    .step-num{font-family:var(--font-mono);font-size:0.62rem;color:var(--dim);}
+    .step-status{font-size:0.65rem;font-family:var(--font-mono);padding:2px 8px;border-radius:20px;}
+    .step-status.pending{color:var(--dim);background:rgba(58,64,88,.4);}
+    .step-status.running{color:var(--amber);background:rgba(245,166,35,.1);}
+    .step-status.done{color:var(--green);background:rgba(30,219,139,.1);}
+    .step-status.waiting{color:var(--accent);background:rgba(79,142,247,.1);}
+    .step-name{font-size:0.83rem;font-weight:500;margin-bottom:4px;}
+    .step-agent{font-size:0.72rem;color:var(--muted);}
+
+    .run-bar{display:flex;align-items:center;gap:12px;margin-bottom:24px;}
+    .run-btn{display:flex;align-items:center;gap:8px;padding:10px 24px;background:linear-gradient(135deg,var(--accent2),var(--accent));border:none;border-radius:8px;color:#fff;font-family:var(--font-display);font-weight:700;font-size:0.88rem;cursor:pointer;transition:all .2s;letter-spacing:-.01em;}
+    .run-btn:hover{transform:translateY(-1px);box-shadow:0 6px 20px rgba(79,142,247,.35);}
+    .run-btn:disabled{opacity:.5;cursor:not-allowed;transform:none;}
+    .reset-btn{padding:10px 18px;background:transparent;border:1px solid var(--border);border-radius:8px;color:var(--muted);font-family:var(--font-body);font-size:0.82rem;cursor:pointer;transition:all .15s;}
+    .reset-btn:hover{border-color:var(--muted);color:var(--text);}
+    .progress-bar-wrap{flex:1;height:4px;background:var(--surface2);border-radius:2px;overflow:hidden;}
+    .progress-bar-fill{height:100%;background:linear-gradient(90deg,var(--accent2),var(--accent));border-radius:2px;transition:width .4s ease;}
+
+    /* RIGHT PANEL */
+    .right-panel{background:var(--surface);border-left:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;}
+    .panel-tabs{display:flex;border-bottom:1px solid var(--border);}
+    .panel-tab{flex:1;padding:12px;text-align:center;font-size:0.75rem;font-family:var(--font-mono);color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;transition:all .15s;text-transform:uppercase;letter-spacing:.06em;}
+    .panel-tab.active{color:var(--accent);border-bottom-color:var(--accent);}
+    .panel-tab:hover{color:var(--text);}
+    .panel-content{flex:1;overflow-y:auto;padding:16px;}
+
+    .log-entry{display:flex;gap:10px;margin-bottom:10px;animation:fadeIn .3s ease;}
+    @keyframes fadeIn{from{opacity:0;transform:translateY(4px);}to{opacity:1;transform:none;}}
+    .log-time{font-family:var(--font-mono);font-size:0.62rem;color:var(--dim);min-width:52px;padding-top:2px;}
+    .log-msg{font-size:0.78rem;line-height:1.5;color:var(--muted);}
+    .log-msg.info{color:var(--text);}
+    .log-msg.success{color:var(--green);}
+    .log-msg.agent{color:var(--accent);}
+    .log-msg b{color:var(--text);font-weight:500;}
+
+    .output-block{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:14px;margin-bottom:12px;}
+    .output-label{font-family:var(--font-mono);font-size:0.6rem;color:var(--dim);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;}
+    .output-label span.ok{color:var(--green);}
+    .output-content{font-size:0.8rem;line-height:1.6;color:var(--text);}
+
+    .thinking{display:inline-flex;gap:3px;align-items:center;}
+    .thinking span{width:5px;height:5px;border-radius:50%;background:var(--amber);animation:blink 1.2s infinite;}
+    .thinking span:nth-child(2){animation-delay:.2s;}
+    .thinking span:nth-child(3){animation-delay:.4s;}
+    @keyframes blink{0%,80%,100%{opacity:.2;}40%{opacity:1;}}
+
+    .config-section{margin-bottom:18px;}
+    .config-label{font-family:var(--font-mono);font-size:0.6rem;text-transform:uppercase;letter-spacing:.1em;color:var(--dim);margin-bottom:8px;}
+    .config-pill{display:inline-flex;align-items:center;gap:6px;padding:5px 12px;border:1px solid var(--border);border-radius:20px;font-size:0.73rem;color:var(--muted);margin:3px;cursor:pointer;transition:all .15s;}
+    .config-pill:hover,.config-pill.on{border-color:var(--accent);color:var(--accent);background:rgba(79,142,247,.08);}
+    .config-pill .dot{width:6px;height:6px;border-radius:50%;background:currentColor;}
+
+    .spinner{display:inline-block;width:12px;height:12px;border:2px solid rgba(255,255,255,.2);border-top-color:white;border-radius:50%;animation:spin .7s linear infinite;margin-right:4px;}
+    @keyframes spin{to{transform:rotate(360deg);}}
+
+    /* ── ASSESSMENT WIZARD ── */
+    .a-wizard{padding:4px 0;}
+    .a-step-bar{height:3px;background:var(--surface2);border-radius:2px;margin-bottom:10px;overflow:hidden;}
+    .a-step-fill{height:100%;background:linear-gradient(90deg,var(--accent2),var(--accent));border-radius:2px;transition:width .4s ease;}
+    .a-step-label{font-family:var(--font-mono);font-size:0.58rem;text-transform:uppercase;letter-spacing:.1em;color:var(--dim);margin-bottom:6px;}
+    .a-step-title{font-family:var(--font-display);font-size:0.95rem;font-weight:700;color:var(--text);margin-bottom:4px;letter-spacing:-.02em;}
+    .a-step-sub{font-size:0.72rem;color:var(--muted);margin-bottom:14px;line-height:1.5;}
+    .a-field-label{font-family:var(--font-mono);font-size:0.6rem;text-transform:uppercase;letter-spacing:.08em;color:var(--dim);margin-bottom:8px;}
+    .a-pills{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px;}
+    .a-pill{font-size:0.68rem;padding:4px 10px;border-radius:14px;border:1px solid var(--border);color:var(--muted);cursor:pointer;transition:all .12s;line-height:1.4;}
+    .a-pill:hover{border-color:var(--accent);color:var(--text);}
+    .a-pill.on{background:rgba(79,142,247,.12);border-color:var(--accent);color:var(--accent);}
+    .a-radios{display:flex;flex-direction:column;gap:7px;margin-bottom:14px;}
+    .a-radio{display:flex;align-items:flex-start;gap:10px;padding:10px 12px;border-radius:8px;border:1px solid var(--border);cursor:pointer;transition:all .12s;}
+    .a-radio:hover{border-color:var(--accent);}
+    .a-radio.on{border-color:var(--accent);background:rgba(79,142,247,.07);}
+    .a-radio-dot{width:14px;height:14px;border-radius:50%;border:2px solid var(--dim);margin-top:2px;flex-shrink:0;transition:all .12s;}
+    .a-radio.on .a-radio-dot{border-color:var(--accent);background:var(--accent);}
+    .a-radio-label{font-size:0.78rem;font-weight:600;color:var(--text);margin-bottom:2px;}
+    .a-radio-sub{font-size:0.68rem;color:var(--muted);line-height:1.4;}
+    .a-actions{display:flex;justify-content:space-between;align-items:center;margin-top:16px;padding-top:14px;border-top:1px solid var(--border);}
+    .a-btn{background:linear-gradient(135deg,var(--accent2),var(--accent));border:none;color:#fff;font-family:var(--font-display);font-weight:700;font-size:0.78rem;padding:8px 18px;border-radius:8px;cursor:pointer;transition:all .15s;}
+    .a-btn:hover{transform:translateY(-1px);box-shadow:0 4px 14px rgba(79,142,247,.35);}
+    .a-btn-go{background:linear-gradient(135deg,#1edb8b,#4f8ef7);}
+    .a-btn-ghost{background:transparent;border:1px solid var(--border);color:var(--muted);font-family:var(--font-body);font-size:0.75rem;padding:7px 14px;border-radius:8px;cursor:pointer;transition:all .15s;}
+    .a-btn-ghost:hover{border-color:var(--muted);color:var(--text);}
+
+    /* Result card */
+    .a-result{padding:4px 0;}
+    .a-result-title{font-family:var(--font-display);font-size:1rem;font-weight:800;color:var(--text);letter-spacing:-.02em;margin-bottom:3px;}
+    .a-result-sub{font-size:0.7rem;color:var(--muted);font-family:var(--font-mono);margin-bottom:14px;}
+    .a-cards{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;}
+    .a-card{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px;text-align:center;}
+    .a-card-cost{border-color:rgba(30,219,139,.3);background:rgba(30,219,139,.05);}
+    .a-card-val{font-family:var(--font-display);font-size:1.3rem;font-weight:800;color:var(--text);letter-spacing:-.02em;}
+    .a-card-cost .a-card-val{color:var(--green);}
+    .a-card-lbl{font-family:var(--font-mono);font-size:0.58rem;text-transform:uppercase;letter-spacing:.08em;color:var(--dim);margin-top:3px;}
+    .a-setup-row{display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:var(--surface2);border-radius:8px;border:1px solid var(--border);margin-bottom:10px;font-size:0.73rem;}
+    .a-setup-label{color:var(--muted);}
+    .a-setup-val{font-family:var(--font-mono);color:var(--amber);font-weight:500;}
+    .a-note{font-size:0.7rem;color:var(--amber);background:rgba(245,166,35,.07);border:1px solid rgba(245,166,35,.2);border-radius:7px;padding:7px 10px;margin-bottom:8px;line-height:1.5;}
+    .a-section-title{font-family:var(--font-mono);font-size:0.58rem;text-transform:uppercase;letter-spacing:.1em;color:var(--dim);margin:12px 0 7px;}
+    .a-phases{display:flex;flex-direction:column;gap:6px;margin-bottom:4px;}
+    .a-phase{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:9px 12px;}
+    .a-phase-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:3px;}
+    .a-phase-name{font-size:0.74rem;font-weight:600;color:var(--text);}
+    .a-phase-weeks{font-family:var(--font-mono);font-size:0.62rem;color:var(--accent);background:rgba(79,142,247,.1);padding:1px 8px;border-radius:10px;}
+    .a-phase-what{font-size:0.68rem;color:var(--muted);line-height:1.5;}
+    .a-checklist{display:flex;flex-direction:column;gap:5px;margin-bottom:4px;}
+    .a-check{font-size:0.72rem;color:var(--text2, #c8d0e8);line-height:1.5;padding-left:4px;}
+    .a-check{color:#b0bcd4;}
+    .a-tag{font-size:0.62rem;font-family:var(--font-mono);padding:2px 8px;border-radius:10px;background:rgba(79,142,247,.1);border:1px solid rgba(79,142,247,.2);color:var(--accent);}
+
+    ::-webkit-scrollbar{width:5px;}
+    ::-webkit-scrollbar-track{background:transparent;}
+    ::-webkit-scrollbar-thumb{background:var(--dim);border-radius:3px;}
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-dot"></div>
+    Agentic BPC Framework
+  </div>
+  <div class="header-right">
+    <span style="font-size:0.75rem;color:var(--muted);font-family:var(--font-mono)">Microsoft Dynamics 365</span>
+    <div class="header-ind">🏭 Manufacturing</div>
+    <div class="header-badge">AI Foundry · Industrial & production process automation</div>
+  </div>
+</header>
+
+<div class="shell">
+
+  <aside class="sidebar">
+    <div class="sidebar-section">Process Domains</div>
+    
+    <div class="process-item" id="sbtn-p65" onclick="selectDomain('p65')">
+      <span class="process-num">65</span>
+      <span class="process-item-icon">💰</span>
+      <span>Order to Cash</span>
+    </div>
+    <div class="process-item" id="sbtn-p75" onclick="selectDomain('p75')">
+      <span class="process-num">75</span>
+      <span class="process-item-icon">🛒</span>
+      <span>Source to Pay</span>
+    </div>
+    <div class="process-item" id="sbtn-p55" onclick="selectDomain('p55')">
+      <span class="process-num">55</span>
+      <span class="process-item-icon">👥</span>
+      <span>Hire to Retire</span>
+    </div>
+    <div class="process-item" id="sbtn-p90" onclick="selectDomain('p90')">
+      <span class="process-num">90</span>
+      <span class="process-item-icon">📒</span>
+      <span>Record to Report</span>
+    </div>
+    <div class="process-item" id="sbtn-p80" onclick="selectDomain('p80')">
+      <span class="process-num">80</span>
+      <span class="process-item-icon">🏗️</span>
+      <span>Project to Profit</span>
+    </div>
+    <div class="process-item" id="sbtn-p10" onclick="selectDomain('p10')">
+      <span class="process-num">10</span>
+      <span class="process-item-icon">🏢</span>
+      <span>Acquire to Dispose</span>
+    </div>
+    <div class="process-item" id="sbtn-p70" onclick="selectDomain('p70')">
+      <span class="process-num">70</span>
+      <span class="process-item-icon">🏭</span>
+      <span>Plan to Produce</span>
+    </div>
+    <div class="process-item" id="sbtn-p60" onclick="selectDomain('p60')">
+      <span class="process-num">60</span>
+      <span class="process-item-icon">📦</span>
+      <span>Inventory to Deliver</span>
+    </div>
+    <div class="process-item" id="sbtn-p85" onclick="selectDomain('p85')">
+      <span class="process-num">85</span>
+      <span class="process-item-icon">🎯</span>
+      <span>Prospect to Quote</span>
+    </div>
+    <div class="process-item" id="sbtn-p95" onclick="selectDomain('p95')">
+      <span class="process-num">95</span>
+      <span class="process-item-icon">🔧</span>
+      <span>Service to Deliver</span>
+    </div>
+    <div class="process-item" id="sbtn-p20" onclick="selectDomain('p20')">
+      <span class="process-num">20</span>
+      <span class="process-item-icon">🎫</span>
+      <span>Case to Resolution</span>
+    </div>
+    <div class="process-item" id="sbtn-p50" onclick="selectDomain('p50')">
+      <span class="process-num">50</span>
+      <span class="process-item-icon">📈</span>
+      <span>Forecast to Plan</span>
+    </div>
+    <div class="process-item" id="sbtn-p30" onclick="selectDomain('p30')">
+      <span class="process-num">30</span>
+      <span class="process-item-icon">📣</span>
+      <span>Concept to Market</span>
+    </div>
+    <div class="process-item" id="sbtn-p40" onclick="selectDomain('p40')">
+      <span class="process-num">40</span>
+      <span class="process-item-icon">💡</span>
+      <span>Design to Retire</span>
+    </div>
+    <div class="process-item" id="sbtn-p99" onclick="selectDomain('p99')">
+      <span class="process-num">99</span>
+      <span class="process-item-icon">⚙️</span>
+      <span>Administer to Operate</span>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="domain-header">
+      <div class="domain-title" id="domainTitle"></div>
+      <div class="domain-subtitle" id="domainSubtitle"></div>
+      <div style="margin-top:8px"><span class="domain-ind-tag">🏭 Manufacturing · Industry-specific process steps</span></div>
+    </div>
+
+    <div class="orchestration-map">
+      <div class="map-title">Agent Orchestration Architecture — Manufacturing</div>
+      <div class="agent-flow" id="agentFlow"></div>
+    </div>
+
+    <div class="run-bar">
+      <button class="run-btn" id="runBtn" onclick="runProcess()">▶ Run Agentic Process</button>
+      <button class="reset-btn" onclick="resetProcess()">↺ Reset</button>
+      <div class="progress-bar-wrap"><div class="progress-bar-fill" id="progressFill" style="width:0%"></div></div>
+      <span style="font-family:var(--font-mono);font-size:0.7rem;color:var(--muted)" id="progressLabel">0 / 0</span>
+    </div>
+
+    <div class="steps-grid" id="stepsGrid"></div>
+  </main>
+
+  <aside class="right-panel">
+    <div class="panel-tabs">
+      <div class="panel-tab active" id="tab-log" onclick="switchTab('log')">Log</div>
+      <div class="panel-tab" id="tab-output" onclick="switchTab('output')">Output</div>
+      <div class="panel-tab" id="tab-assess" onclick="switchTab('assess')">Assess</div>
+      <div class="panel-tab" id="tab-config" onclick="switchTab('config')">Config</div>
+    </div>
+    <div class="panel-content" id="panelContent"></div>
+  </aside>
+
+</div>
+
+
+<script>
+const DOMAINS = [{"id":"p65","num":"65","icon":"💰","name":"Order to Cash","desc":"Full cycle from sales order creation through invoicing, cash receipt, and AR reconciliation.","agents":[{"icon":"🧠","label":"Orchestrator","role":"orchestrator"},{"icon":"📋","label":"Policy Agent","role":"policy"},{"icon":"📦","label":"Order Agent","role":"order"},{"icon":"🚚","label":"Fulfil Agent","role":"fulfil"},{"icon":"💳","label":"AR Agent","role":"ar"},{"icon":"📊","label":"Analytics","role":"analytics"}],"steps":[{"num":"65.05","name":"Define Sales Policies","agent":"Policy Agent","icon":"📋","output":"OEM/distributor credit terms validated. 3 accounts flagged over Net-60 limit. BOM-linked pricing rules active across 847 SKUs."},{"num":"65.20","name":"Manage Sales Orders","agent":"Order Agent","icon":"📦","output":"124 production orders linked to customer orders. Make-to-order lead times validated. 6 orders flagged for scheduling conflict."},{"num":"65.30","name":"Manage Accounts Receivable","agent":"AR Agent","icon":"💳","output":"Progress billing milestones processed for 8 long-cycle contracts. AR ledger reconciled. 2 deferred revenue entries posted."},{"num":"65.50","name":"Credit and Collections","agent":"AR Agent","icon":"🔎","output":"4 overdue OEM accounts escalated. Automated dunning sent. 1 dispute raised on delivery milestone claim ($34K)."},{"num":"65.60","name":"Analyze Sales Performance","agent":"Analytics","icon":"📊","output":"Revenue: €6.2M. Distributor channel up 14%. DSO: 38 days. 3 customers at churn risk based on order frequency drop."}]},{"id":"p75","num":"75","icon":"🛒","name":"Source to Pay","desc":"End-to-end procurement from sourcing strategy through supplier management, purchasing, and AP close.","agents":[{"icon":"🧠","label":"Orchestrator","role":"orchestrator"},{"icon":"📐","label":"Strategy Agent","role":"strategy"},{"icon":"🤝","label":"Supplier Agent","role":"supplier"},{"icon":"📑","label":"Contract Agent","role":"contract"},{"icon":"💸","label":"AP Agent","role":"ap"},{"icon":"📊","label":"Analytics","role":"analytics"}],"steps":[{"num":"75.10","name":"Develop Procurement Strategy","agent":"Strategy Agent","icon":"📐","output":"Direct materials spend: €12.4M. 23 strategic suppliers identified. Dual-source strategy activated for 4 critical components after risk review."},{"num":"75.30","name":"Manage Supplier Relationships","agent":"Supplier Agent","icon":"🤝","output":"IATF/ISO supplier scorecards updated. 3 suppliers below quality threshold. PPAP approval tracked for 7 new component introductions."},{"num":"75.35","name":"Source and Contract","agent":"Contract Agent","icon":"📑","output":"2 blanket orders renewed. TCO analysis completed for steel sourcing. AI ranked 6 bids. New supplier contract saves €180K/yr."},{"num":"75.40","name":"Procure Goods and Services","agent":"AP Agent","icon":"🛒","output":"847 POs auto-generated from MRP signals. GR/IR reconciliation: 96% auto-matched. 3 goods receipt discrepancies flagged."},{"num":"75.50","name":"Manage Accounts Payable","agent":"AP Agent","icon":"💸","output":"AP run: €2.8M. 14 early payment discounts captured (€22K saved). 2 duplicate invoices blocked. DPO: 45 days."}]},{"id":"p55","num":"55","icon":"👥","name":"Hire to Retire","desc":"Full employee lifecycle from talent acquisition through performance, compensation, and offboarding.","agents":[{"icon":"🧠","label":"Orchestrator","role":"orchestrator"},{"icon":"🎯","label":"Talent Agent","role":"talent"},{"icon":"📋","label":"Compliance Agent","role":"compliance"},{"icon":"📈","label":"Performance Agent","role":"performance"},{"icon":"⏱️","label":"Time Agent","role":"time"},{"icon":"💰","label":"Comp Agent","role":"comp"}],"steps":[{"num":"55.05","name":"Develop People Strategy","agent":"Talent Agent","icon":"🎯","output":"Shift worker headcount plan: 42 open roles for Q3. 8 agency workers converted to permanent. Skills gap: CNC operators critical."},{"num":"55.10","name":"Recruit and Onboard Talent","agent":"Talent Agent","icon":"🔍","output":"320 applications screened. 42 offers extended. Bulk onboarding: health & safety induction, PPE issue, machinery licence checks."},{"num":"55.30","name":"Manage Workplace Compliance","agent":"Compliance Agent","icon":"📋","output":"COSHH training: 98% complete. Machinery operator licences: 4 renewals due. RIDDOR incident report filed. Safety audit trail updated."},{"num":"55.50","name":"Manage Time and Attendance","agent":"Time Agent","icon":"⏱️","output":"Shift patterns validated for 840 employees. OT anomalies: 6 flagged. Union agreement compliance checked. Payroll feed: clean."},{"num":"55.70","name":"Compensation and Benefits","agent":"Comp Agent","icon":"💰","output":"Payroll: 840 employees. Shift premiums applied. 3 pay anomalies resolved. Skills-based pay progression updated for 18 employees."}]},{"id":"p90","num":"90","icon":"📒","name":"Record to Report","desc":"Financial transaction recording, period-end close, management reporting, and performance analysis.","agents":[{"icon":"🧠","label":"Orchestrator","role":"orchestrator"},{"icon":"📜","label":"Policy Agent","role":"policy"},{"icon":"💵","label":"Cash Agent","role":"cash"},{"icon":"📒","label":"GL Agent","role":"gl"},{"icon":"🔒","label":"Close Agent","role":"close"},{"icon":"📊","label":"Report Agent","role":"report"}],"steps":[{"num":"90.10","name":"Define Accounting Policies","agent":"Policy Agent","icon":"📜","output":"Standard costing updated for raw material price changes. IFRS 16 lease accounting confirmed for 12 production facilities."},{"num":"90.25","name":"Manage Cash","agent":"Cash Agent","icon":"💵","output":"4 bank accounts reconciled. Production capex payments tracked. Cash position: €8.4M. Foreign currency revaluation posted."},{"num":"90.50","name":"Record Transactions","agent":"GL Agent","icon":"📒","output":"Production order settlement: 340 variance postings. Scrap and rework costs posted. Intercompany recharges reconciled across 3 plants."},{"num":"90.60","name":"Close Financial Periods","agent":"Close Agent","icon":"🔒","output":"Month-end close: Day 3 complete. Depreciation run: €420K posted. Inventory revaluation done. COGS adjusted for WIP movement."},{"num":"90.70","name":"Analyze Financial Performance","agent":"Report Agent","icon":"📊","output":"Gross margin: 34.2%. Variable cost variance: €180K adverse. OEE impact on absorption: flagged. Board pack drafted for CFO."}]},{"id":"p80","num":"80","icon":"🏗️","name":"Project to Profit","desc":"Project contracts, resource planning, delivery tracking, financials, and profitability analysis.","agents":[{"icon":"🧠","label":"Orchestrator","role":"orchestrator"},{"icon":"📑","label":"Contract Agent","role":"contract"},{"icon":"🗓️","label":"Planning Agent","role":"planning"},{"icon":"🏗️","label":"Delivery Agent","role":"delivery"},{"icon":"💰","label":"Finance Agent","role":"finance"},{"icon":"📊","label":"Analytics","role":"analytics"}],"steps":[{"num":"80.20","name":"Manage Project Contracts","agent":"Contract Agent","icon":"📑","output":"Capital project contracts: 8 active. Milestone payments tracked. 2 change orders processed with full cost impact analysis."},{"num":"80.30","name":"Plan Projects","agent":"Planning Agent","icon":"🗓️","output":"Engineering resource plan updated. Critical path: commissioning phase at risk. 3 workstreams replanned. Cross-project dependencies mapped."},{"num":"80.40","name":"Manage Project Delivery","agent":"Delivery Agent","icon":"🏗️","output":"EVM: SPI 0.91, CPI 1.04. 1 project behind on timeline. Mitigation plan auto-generated. Plant installation milestone: on track."},{"num":"80.50","name":"Manage Project Financials","agent":"Finance Agent","icon":"💰","output":"Capex vs budget: 94% utilised. EAC updated for 3 projects. Capitalisation readiness: 2 assets ready for fixed asset transfer."},{"num":"80.60","name":"Analyze Performance","agent":"Analytics","icon":"📊","output":"Portfolio capex: €18.4M. On-budget projects: 6/8. Average ROI forecast: 14%. 1 project below hurdle rate — review triggered."}]},{"id":"p10","num":"10","icon":"🏢","name":"Acquire to Dispose","desc":"Fixed asset lifecycle from strategy and acquisition through maintenance, management, and disposal.","agents":[{"icon":"🧠","label":"Orchestrator","role":"orchestrator"},{"icon":"📐","label":"Strategy Agent","role":"strategy"},{"icon":"🏢","label":"Asset Agent","role":"asset"},{"icon":"🔧","label":"Maint. Agent","role":"maint"},{"icon":"💸","label":"Finance Agent","role":"finance"},{"icon":"📊","label":"Analytics","role":"analytics"}],"steps":[{"num":"10.05","name":"Define Asset Strategy","agent":"Strategy Agent","icon":"📐","output":"Production asset register: 2,340 items. Dual-source strategy for 4 critical machines. Replacement cycle modelled for press lines."},{"num":"10.20","name":"Acquire Assets","agent":"Asset Agent","icon":"🏢","output":"3 capital equipment orders processed. PPAP documentation linked. Asset records created in D365. Commissioning checklists issued."},{"num":"10.40","name":"Manage Active Assets","agent":"Maint. Agent","icon":"🔧","output":"IoT/OEE alerts: 4 machines require servicing within 14 days. Spare parts pre-ordered. MTBF updated across 240 assets."},{"num":"10.50","name":"Perform Asset Maintenance","agent":"Maint. Agent","icon":"⚙️","output":"18 planned maintenance orders completed. Breakdown response: avg 2.1 hours. 3 machines returned to service. Costs posted to assets."},{"num":"10.70","name":"Analyze Assets","agent":"Analytics","icon":"📊","output":"OEE avg: 79%. Asset utilisation: 82%. 6 underperforming assets flagged. Disposal proceeds forecast: €340K. ROA: 11.8%."}]},{"id":"p70","num":"70","icon":"🏭","name":"Plan to Produce","desc":"Production strategies, MRP planning, operations execution, quality control, and performance analysis.","agents":[{"icon":"🧠","label":"Orchestrator","role":"orchestrator"},{"icon":"📐","label":"Strategy Agent","role":"strategy"},{"icon":"🗓️","label":"Planning Agent","role":"planning"},{"icon":"🏭","label":"Prod. Agent","role":"prod"},{"icon":"🔍","label":"Quality Agent","role":"quality"},{"icon":"📊","label":"Analytics","role":"analytics"}],"steps":[{"num":"70.10","name":"Develop Production Strategy","agent":"Strategy Agent","icon":"📐","output":"Capacity plan updated: 2 lines at 94% utilisation. Bottleneck: final assembly. Outsourcing evaluated for 3 non-core subassemblies."},{"num":"70.20","name":"Plan Production Operations","agent":"Planning Agent","icon":"🗓️","output":"MRP run: 1,240 planned orders. 3 material shortages — expedite POs raised. Sequencing optimised for changeover reduction."},{"num":"70.30","name":"Run Production Operations","agent":"Prod. Agent","icon":"🏭","output":"4,820 units produced (97.4% of plan). 2 line stoppages — maintenance alerts sent. WIP tracked in real time via MES."},{"num":"70.60","name":"Control Production Quality","agent":"Quality Agent","icon":"🔍","output":"480 samples inspected. Defect rate: 0.6%. 1 batch quarantined — supplier raw material variance confirmed. CAPA raised."},{"num":"70.70","name":"Analyze Production","agent":"Analytics","icon":"📊","output":"OEE: 82%. Scrap cost: €14K. Yield improvement opportunity identified on Line 3 (+12%). Shift performance benchmarked."}]},{"id":"p60","num":"60","icon":"📦","name":"Inventory to Deliver","desc":"Warehouse operations, inventory management, inbound and outbound goods, quality, and transportation.","agents":[{"icon":"🧠","label":"Orchestrator","role":"orchestrator"},{"icon":"🏪","label":"WMS Agent","role":"wms"},{"icon":"📦","label":"Inbound Agent","role":"inbound"},{"icon":"🚚","label":"Outbound Agent","role":"outbound"},{"icon":"🔄","label":"Replenish. Agent","role":"replenish"},{"icon":"📊","label":"Analytics","role":"analytics"}],"steps":[{"num":"60.10","name":"Manage Warehouse Operations","agent":"WMS Agent","icon":"🏪","output":"Slotting optimised: 240 bin moves for raw materials. Mixed-mode storage: raw, WIP, FG zones configured. Cycle count: 4 variances."},{"num":"60.20","name":"Maintain Inventory Levels","agent":"Replenish. Agent","icon":"🔄","output":"Kanban signals triggered: 18 replenishments. VMI orders auto-generated for 6 suppliers. Safety stock reviewed vs production plan."},{"num":"60.30","name":"Process Inbound Goods","agent":"Inbound Agent","icon":"📦","output":"8 inbound shipments. Lot/serial traceability applied. GR/QI integration: 12 items sampled. 2 supplier quality holds raised."},{"num":"60.40","name":"Process Outbound Goods","agent":"Outbound Agent","icon":"🚚","output":"340 customer shipments. Sequenced delivery to 3 assembly lines. DESADV sent. Carrier: 96.8% on-time departure."},{"num":"60.80","name":"Analyze Warehouse Operations","agent":"Analytics","icon":"📊","output":"Throughput: 2,140 lines/day. Storage utilisation: 84%. Labour productivity +8% vs plan. OTIF: 97.4%."}]},{"id":"p85","num":"85","icon":"🎯","name":"Prospect to Quote","desc":"CRM, lead qualification, opportunity management, quoting, and sales performance analysis.","agents":[{"icon":"🧠","label":"Orchestrator","role":"orchestrator"},{"icon":"👥","label":"CRM Agent","role":"crm"},{"icon":"🎯","label":"Lead Agent","role":"lead"},{"icon":"🏆","label":"Oppty Agent","role":"oppty"},{"icon":"📝","label":"Quote Agent","role":"quote"},{"icon":"📊","label":"Analytics","role":"analytics"}],"steps":[{"num":"85.15","name":"Manage Customer Relationships","agent":"CRM Agent","icon":"👥","output":"OEM and distributor CRM: 1,240 accounts validated. 18 duplicates merged. Firmographic data enriched. Buying pattern analysis complete."},{"num":"85.25","name":"Identify and Qualify Leads","agent":"Lead Agent","icon":"🎯","output":"84 inbound industrial leads scored. 28 MQL. 12 qualified based on machinery fit and capex signals. 8 routed to key account managers."},{"num":"85.45","name":"Pursue Opportunities","agent":"Oppty Agent","icon":"🏆","output":"Pipeline: €8.4M. 4 opportunities stalled — AI next-best actions sent. Capital equipment deals avg cycle: 14 months."},{"num":"85.55","name":"Estimate and Quote Sales","agent":"Quote Agent","icon":"📝","output":"8 BOM-driven quotes generated. Tooling costs included. 3 require margin approval (below 22%). Engineering sign-off tracked."},{"num":"85.65","name":"Analyze Sales Performance","agent":"Analytics","icon":"📊","output":"Win rate: 28%. Avg deal: €420K. Lost deals: 3 on price, 2 on lead time. Quote-to-order: 34%. Distributor channel: +18% YoY."}]},{"id":"p95","num":"95","icon":"🔧","name":"Service to Deliver","desc":"Service strategy, work planning, field service execution, delivery, and performance analysis.","agents":[{"icon":"🧠","label":"Orchestrator","role":"orchestrator"},{"icon":"📐","label":"Strategy Agent","role":"strategy"},{"icon":"🗓️","label":"Planning Agent","role":"planning"},{"icon":"🔧","label":"Field Agent","role":"field"},{"icon":"✅","label":"Resolution Agent","role":"resolution"},{"icon":"📊","label":"Analytics","role":"analytics"}],"steps":[{"num":"95.05","name":"Develop Service Strategy","agent":"Strategy Agent","icon":"📐","output":"Service contracts reviewed: 340 machines under SLA. Predictive vs reactive ratio target: 70/30. Contract renewal pipeline: €1.2M."},{"num":"95.15","name":"Plan Service Work","agent":"Planning Agent","icon":"🗓️","output":"847 service requests triaged. Predictive triggers from IoT: 42. Field engineer routes optimised — 16% travel reduction."},{"num":"95.25","name":"Manage Service Work","agent":"Field Agent","icon":"🔧","output":"234 active jobs tracked. 4 SLA breach risks flagged. Emergency callouts: 8 (avg response: 94 mins). Spare parts: pre-staged for 12 jobs."},{"num":"95.35","name":"Deliver Services","agent":"Resolution Agent","icon":"✅","output":"187 jobs completed. First-time fix: 91%. 3 return visits required — root cause logged. Warranty recovery: 2 claims filed."},{"num":"95.45","name":"Analyze Service Performance","agent":"Analytics","icon":"📊","output":"CSAT: 4.7/5. MTTR: 2.4 hrs. Cost per service event: €168 (down 11%). Service contract margin: 34%."}]},{"id":"p20","num":"20","icon":"🎫","name":"Case to Resolution","desc":"Knowledge base, case intake, case management, resolution tracking, and analytics.","agents":[{"icon":"🧠","label":"Orchestrator","role":"orchestrator"},{"icon":"📚","label":"Knowledge Agent","role":"knowledge"},{"icon":"📥","label":"Intake Agent","role":"intake"},{"icon":"🔎","label":"Case Agent","role":"case"},{"icon":"✅","label":"Resolution Agent","role":"resolution"},{"icon":"📊","label":"Analytics","role":"analytics"}],"steps":[{"num":"20.10","name":"Establish Knowledge Base","agent":"Knowledge Agent","icon":"📚","output":"Technical service bulletins: 840 articles. 12 new TSBs auto-drafted from field cases. Repair procedure library: 98% up to date."},{"num":"20.30","name":"Intake Cases","agent":"Intake Agent","icon":"📥","output":"840 warranty claims and technical queries ingested. AI classified: 94%. 42 high-severity field failures prioritised."},{"num":"20.40","name":"Manage and Work on Cases","agent":"Case Agent","icon":"🔎","output":"Cases routed to product engineering: 124. AI solution suggestions: 67% accepted. 8 field defect patterns identified."},{"num":"20.60","name":"Analyze Case Performance","agent":"Analytics","icon":"📊","output":"Warranty cost per unit: €42. Top failure mode: seal degradation (18%). CAPA closure rate: 84%. Supplier recovery: 3 claims filed."}]},{"id":"p50","num":"50","icon":"📈","name":"Forecast to Plan","desc":"Business strategy, S&OP planning, execution, financial planning, and business performance analysis.","agents":[{"icon":"🧠","label":"Orchestrator","role":"orchestrator"},{"icon":"🌐","label":"Strategy Agent","role":"strategy"},{"icon":"📦","label":"S&OP Agent","role":"sop"},{"icon":"📈","label":"Exec. Agent","role":"exec"},{"icon":"💰","label":"Finance Agent","role":"finance"},{"icon":"📊","label":"Analytics","role":"analytics"}],"steps":[{"num":"50.15","name":"Develop Business Strategy","agent":"Strategy Agent","icon":"🌐","output":"Manufacturing strategy updated: 3 new product families planned. Footprint review: 2 plant scenarios modelled. Carbon target set."},{"num":"50.25","name":"Conduct S&OP Planning","agent":"S&OP Agent","icon":"📦","output":"Consensus demand forecast: 4.2M units for Q3. Supply constraints modelled: 1 bottleneck identified. Exec S&OP summary prepared."},{"num":"50.35","name":"Execute Sales and Operations","agent":"Exec. Agent","icon":"📈","output":"Production plan deployed. OEE targets set per line. 2 demand spikes triggered supply response. Cross-functional actions logged."},{"num":"50.55","name":"Conduct Financial Planning","agent":"Finance Agent","icon":"💰","output":"Standard cost update modelled. Capex plan: €18M. Rolling forecast: Q3 revenue €48M. Scenario analysis: base/upside/downside ready."},{"num":"50.65","name":"Analyze Business Performance","agent":"Analytics","icon":"📊","output":"Balanced scorecard: 9/12 KPIs on track. Revenue vs plan: 103%. EBITDA margin: 22.4%. 3 leading indicators trending negative."}]},{"id":"p30","num":"30","icon":"📣","name":"Concept to Market","desc":"Marketing strategy, research and development, campaign planning, execution, and performance measurement.","agents":[{"icon":"🧠","label":"Orchestrator","role":"orchestrator"},{"icon":"🗺️","label":"Strategy Agent","role":"strategy"},{"icon":"🔬","label":"Research Agent","role":"research"},{"icon":"📣","label":"Campaign Agent","role":"campaign"},{"icon":"⚡","label":"Activation Agent","role":"activation"},{"icon":"📊","label":"Analytics","role":"analytics"}],"steps":[{"num":"30.05","name":"Develop Marketing Strategy","agent":"Strategy Agent","icon":"🗺️","output":"ICP updated for 3 industrial segments. Value proposition refreshed for CNC and automation products. Distributor channel strategy confirmed."},{"num":"30.15","name":"Research and Develop Offerings","agent":"Research Agent","icon":"🔬","output":"VoC survey: 240 industrial buyers. 4 unmet needs identified. Competitor analysis: 2 new entrants detected. Product gap documented."},{"num":"30.35","name":"Prepare Marketing Campaigns","agent":"Campaign Agent","icon":"📣","output":"Trade show programme: 3 events. Content: 8 technical white papers planned. LinkedIn campaign: 6 ad sets built. Budget: £340K."},{"num":"30.45","name":"Manage Marketing Campaigns","agent":"Activation Agent","icon":"⚡","output":"Trade show leads: 124 captured. LinkedIn CTR: 2.4%. 2 underperforming ad sets paused. Webinar registrations: 340."},{"num":"30.55","name":"Analyze Marketing Operations","agent":"Analytics","icon":"📊","output":"Pipeline generated: €2.4M. MQL: 84. CAC: €1,200. Trade show ROI: 340% vs target. Content-attributed pipeline: 42%."}]},{"id":"p40","num":"40","icon":"💡","name":"Design to Retire","desc":"Product strategy, new product introduction, active product management, retirement, and portfolio analysis.","agents":[{"icon":"🧠","label":"Orchestrator","role":"orchestrator"},{"icon":"💡","label":"Strategy Agent","role":"strategy"},{"icon":"🆕","label":"Launch Agent","role":"launch"},{"icon":"📦","label":"Product Agent","role":"product"},{"icon":"🔚","label":"Retire Agent","role":"retire"},{"icon":"📊","label":"Analytics","role":"analytics"}],"steps":[{"num":"40.10","name":"Develop Product Strategy","agent":"Strategy Agent","icon":"💡","output":"Product portfolio: 84 SKUs. APQP initiated for 3 new products. Roadmap prioritised by NPV. Voice of customer: 240 responses processed."},{"num":"40.20","name":"Introduce Products","agent":"Launch Agent","icon":"🆕","output":"2 new products launched: PPAP approved, CE marked, dealer training complete. Launch pack distributed to 42 distributors."},{"num":"40.50","name":"Manage Active Products","agent":"Product Agent","icon":"📦","output":"8 engineering changes processed. REACH/RoHS compliance updated for 4 SKUs. Pricing reviewed against material cost movements."},{"num":"40.60","name":"Retire Products","agent":"Retire Agent","icon":"🔚","output":"3 products end-of-life initiated. Last-time buy communicated to distributors. Spare parts stocking plan: 10 years service life."},{"num":"40.90","name":"Analyze Product Performance","agent":"Analytics","icon":"📊","output":"Portfolio revenue: €42M. Top 3 SKUs: 58% of revenue. Margin by product updated. 4 SKUs flagged for review: margin below 18%."}]},{"id":"p99","num":"99","icon":"⚙️","name":"Administer to Operate","desc":"System implementation, security, data management, system monitoring, and release management.","agents":[{"icon":"🧠","label":"Orchestrator","role":"orchestrator"},{"icon":"🛠️","label":"Impl. Agent","role":"impl"},{"icon":"🔐","label":"Security Agent","role":"security"},{"icon":"🗄️","label":"Data Agent","role":"data"},{"icon":"📡","label":"Monitor Agent","role":"monitor"},{"icon":"🔄","label":"Release Agent","role":"release"}],"steps":[{"num":"99.01","name":"Implement Solutions","agent":"Impl. Agent","icon":"🛠️","output":"MES/ERP integration: 98% data fidelity. Shop floor devices: 240 enrolled. IoT sensor feeds: 42 streams live. Go-live readiness: 94%."},{"num":"99.25","name":"Manage Access and Security","agent":"Security Agent","icon":"🔐","output":"ITAR data classification applied. 18 access reviews completed. OT/IT network segmentation validated. ISO 27001 audit: passed."},{"num":"99.55","name":"Manage Data","agent":"Data Agent","icon":"🗄️","output":"Product master data: 99.2% quality score. BOM integrity check: 100%. Material master: 4 duplicates cleansed. REACH data updated."},{"num":"99.35","name":"Monitor Systems","agent":"Monitor Agent","icon":"📡","output":"ERP uptime: 99.94%. MES performance: within SLA. IoT data latency: <200ms. 2 anomalies resolved before production impact."},{"num":"99.50","name":"Uptake Software Releases","agent":"Release Agent","icon":"🔄","output":"Wave release assessed: 8 manufacturing processes impacted. Test scripts generated. Regression: 96% pass. Production freeze respected."}]}];
+const IND_NAME = "Manufacturing";
+let currentDomain = DOMAINS[0].id;
+let running = false;
+let stepStatuses = {};
+let logEntries = [];
+let outputBlocks = [];
+let activeTab = 'log';
+
+function selectDomain(id, noReset) {
+  if (running) return;
+  currentDomain = id;
+  document.querySelectorAll('.process-item').forEach(e => e.classList.remove('active'));
+  const sb = document.getElementById('sbtn-' + id);
+  if (sb) { sb.classList.add('active'); sb.scrollIntoView({block:'nearest'}); }
+  if (!noReset) resetProcess();
+  renderDomainHeader();
+  renderAgentFlow();
+  renderSteps();
+}
+
+function getDomain() { return DOMAINS.find(d => d.id === currentDomain); }
+
+function renderDomainHeader() {
+  const d = getDomain();
+  document.getElementById('domainTitle').textContent = d.num + ' — ' + d.name;
+  document.getElementById('domainSubtitle').textContent = d.desc;
+}
+
+function renderAgentFlow() {
+  const d = getDomain();
+  const flow = document.getElementById('agentFlow');
+  flow.innerHTML = '';
+  d.agents.forEach((ag, i) => {
+    const node = document.createElement('div');
+    node.className = 'agent-node'; node.id = 'agent-' + ag.role;
+    node.innerHTML = '<div class="agent-icon">' + ag.icon + '</div><div class="agent-label">' + ag.label + '</div>';
+    flow.appendChild(node);
+    if (i < d.agents.length - 1) {
+      const arr = document.createElement('div');
+      arr.className = 'flow-arrow'; arr.textContent = '→';
+      flow.appendChild(arr);
+    }
+  });
+}
+
+function renderSteps() {
+  const d = getDomain();
+  const grid = document.getElementById('stepsGrid');
+  grid.innerHTML = '';
+  d.steps.forEach(step => {
+    const status = stepStatuses[step.num] || 'pending';
+    const labels = {pending:'Pending', running:'Running…', done:'Done', waiting:'Queued'};
+    const card = document.createElement('div');
+    card.className = 'step-card' + (status === 'done' ? ' active' : '');
+    card.id = 'step-' + step.num.replace(/\./g, '_');
+    card.innerHTML =
+      '<div class="step-header">' +
+        '<span class="step-num">' + step.num + '</span>' +
+        '<span class="step-status ' + status + '">' + labels[status] + '</span>' +
+      '</div>' +
+      '<div class="step-name">' + step.icon + ' ' + step.name + '</div>' +
+      '<div class="step-agent">🤖 ' + step.agent + '</div>';
+    grid.appendChild(card);
+  });
+  const d2 = getDomain();
+  const done = Object.values(stepStatuses).filter(v => v === 'done').length;
+  document.getElementById('progressFill').style.width = (d2.steps.length ? (done / d2.steps.length) * 100 : 0) + '%';
+  document.getElementById('progressLabel').textContent = done + ' / ' + d2.steps.length;
+}
+
+function setStepStatus(num, status) {
+  stepStatuses[num] = status;
+  const key = num.replace(/\./g,'_');
+  const card = document.getElementById('step-' + key);
+  if (!card) return;
+  card.className = 'step-card' + (status === 'done' ? ' active' : '');
+  const labels = {pending:'Pending', running:'Running…', done:'Done', waiting:'Queued'};
+  const s = card.querySelector('.step-status');
+  if (s) { s.className = 'step-status ' + status; s.textContent = labels[status]; }
+  const done = Object.values(stepStatuses).filter(v => v === 'done').length;
+  const total = getDomain().steps.length;
+  document.getElementById('progressFill').style.width = ((done/total)*100) + '%';
+  document.getElementById('progressLabel').textContent = done + ' / ' + total;
+}
+
+function highlightAgent(label, state) {
+  const d = getDomain();
+  const ag = d.agents.find(a => a.label === label);
+  if (!ag) return;
+  const node = document.getElementById('agent-' + ag.role);
+  if (node) node.className = 'agent-node ' + state;
+}
+
+function addLog(type, msg) {
+  const time = new Date().toTimeString().split(' ')[0];
+  logEntries.push({time, type, msg});
+  if (activeTab === 'log') renderLog();
+}
+
+function renderLog() {
+  const pc = document.getElementById('panelContent');
+  if (activeTab !== 'log') return;
+  pc.innerHTML = logEntries.length === 0
+    ? '<div style="color:var(--dim);font-size:0.78rem;margin-top:16px;text-align:center">No activity yet.<br><br>Select a process and click Run.</div>'
+    : logEntries.map(e => '<div class="log-entry"><div class="log-time">' + e.time + '</div><div class="log-msg ' + e.type + '">' + e.msg + '</div></div>').join('');
+  pc.scrollTop = pc.scrollHeight;
+}
+
+function renderOutput() {
+  if (activeTab !== 'output') return;
+  const pc = document.getElementById('panelContent');
+  if (!outputBlocks.length) {
+    pc.innerHTML = '<div style="color:var(--dim);font-size:0.78rem;margin-top:16px;text-align:center">Run the process to see agent outputs.</div>';
+    return;
+  }
+  pc.innerHTML = outputBlocks.map(b =>
+    '<div class="output-block">' +
+    '<div class="output-label"><span>' + b.agent + ' — ' + b.step + '</span>' +
+    (b.done ? '<span class="ok">✓ Complete</span>' : '<span class="thinking"><span></span><span></span><span></span></span>') +
+    '</div>' +
+    '<div class="output-content">' + (b.done ? b.text : '<span class="thinking"><span></span><span></span><span></span></span>') + '</div>' +
+    '</div>'
+  ).join('');
+  pc.scrollTop = pc.scrollHeight;
+}
+
+// ── CONFIG STATE ──────────────────────────────────────────────
+var cfgState = {
+  model: 'gpt-4o',
+  mode: 'sequential',
+  sources: ['Dynamics 365','Power BI'],
+  subscription: '',
+  resourceGroup: '',
+  region: 'westeurope',
+  projectName: '',
+  generatedYaml: '',
+  generating: false,
+};
+
+function renderConfig() {
+  if (activeTab !== 'config') return;
+  var pc = document.getElementById('panelContent');
+
+  var modelOpts = ['gpt-4o','gpt-4o-mini','o1','phi-4','claude-sonnet-4-20250514'];
+  var modeOpts  = ['sequential','parallel','human-in-loop'];
+  var srcOpts   = ['Dynamics 365','Power BI','Azure Data Lake','SharePoint','Dataverse','Custom API'];
+  var regions   = ['westeurope','eastus','uksouth','northeurope','australiaeast','southeastasia'];
+
+  var modelHtml = modelOpts.map(function(m) {
+    return '<span class="config-pill' + (cfgState.model === m ? ' on' : '') + '" data-cfg-model="' + m + '"><span class="dot"></span>' + m + '</span>';
+  }).join('');
+
+  var modeHtml = modeOpts.map(function(m) {
+    return '<span class="config-pill' + (cfgState.mode === m ? ' on' : '') + '" data-cfg-mode="' + m + '"><span class="dot"></span>' + m + '</span>';
+  }).join('');
+
+  var srcHtml = srcOpts.map(function(s) {
+    return '<span class="config-pill' + (cfgState.sources.includes(s) ? ' on' : '') + '" data-cfg-src="' + s + '"><span class="dot"></span>' + s + '</span>';
+  }).join('');
+
+  var regionOpts = regions.map(function(r) {
+    return '<option value="' + r + '"' + (cfgState.region === r ? ' selected' : '') + '>' + r + '</option>';
+  }).join('');
+
+  var yamlSection = '';
+  if (cfgState.generatedYaml) {
+    yamlSection =
+      '<div style="margin-top:14px">' +
+      '<div class="config-label" style="margin-bottom:6px">Generated AI Foundry Config</div>' +
+      '<div style="position:relative">' +
+      '<pre id="yamlOutput" style="background:#0a0c10;border:1px solid var(--border);border-radius:8px;padding:12px;font-family:var(--font-mono);font-size:0.62rem;color:#86efac;overflow-x:auto;white-space:pre;max-height:240px;overflow-y:auto;line-height:1.6">' + cfgState.generatedYaml + '</pre>' +
+      '<button data-cfg-copy="1" style="position:absolute;top:8px;right:8px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);color:#94a3b8;font-family:var(--font-mono);font-size:0.62rem;padding:3px 8px;border-radius:5px;cursor:pointer">Copy</button>' +
+      '</div>' +
+      '<button data-cfg-dl="1" style="width:100%;margin-top:8px;background:rgba(30,219,139,0.1);border:1px solid rgba(30,219,139,0.3);color:var(--green);font-family:var(--font-body);font-size:0.75rem;padding:8px;border-radius:8px;cursor:pointer;font-weight:600">Download .yaml</button>' +
+      '</div>';
+  }
+
+  var btnLabel = cfgState.generating
+    ? '<span class="spinner"></span>Generating...'
+    : '⚡ Generate AI Foundry Config';
+
+  pc.innerHTML =
+    '<div class="config-section"><div class="config-label">Industry</div>' +
+    '<span class="config-pill on"><span class="dot"></span>' + IND_NAME + '</span></div>' +
+
+    '<div class="config-section"><div class="config-label">LLM Model</div>' + modelHtml + '</div>' +
+
+    '<div class="config-section"><div class="config-label">Execution Mode</div>' + modeHtml + '</div>' +
+
+    '<div class="config-section"><div class="config-label">Data Sources</div>' + srcHtml + '</div>' +
+
+    '<div class="config-section"><div class="config-label">Azure Details</div>' +
+    '<div style="display:flex;flex-direction:column;gap:6px;margin-top:4px">' +
+    '<input id="cfgSub" placeholder="Subscription ID (optional)" value="' + cfgState.subscription + '" style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:7px 10px;font-family:var(--font-mono);font-size:0.68rem;color:var(--text);width:100%">' +
+    '<input id="cfgRg" placeholder="Resource Group (optional)" value="' + cfgState.resourceGroup + '" style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:7px 10px;font-family:var(--font-mono);font-size:0.68rem;color:var(--text);width:100%">' +
+    '<input id="cfgProj" placeholder="Project name (optional)" value="' + cfgState.projectName + '" style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:7px 10px;font-family:var(--font-mono);font-size:0.68rem;color:var(--text);width:100%">' +
+    '<select id="cfgRegion" style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:7px 10px;font-family:var(--font-mono);font-size:0.68rem;color:var(--text);width:100%">' + regionOpts + '</select>' +
+    '</div></div>' +
+
+    '<button data-cfg-generate="1" style="width:100%;margin-top:4px;background:linear-gradient(135deg,var(--accent2),var(--accent));border:none;color:#fff;font-family:var(--font-display);font-weight:700;font-size:0.8rem;padding:10px;border-radius:8px;cursor:pointer;letter-spacing:-.01em;display:flex;align-items:center;justify-content:center;gap:6px">' + btnLabel + '</button>' +
+
+    yamlSection;
+}
+
+async function generateFoundryConfig() {
+  if (cfgState.generating) return;
+  var pc = document.getElementById('panelContent');
+  // read form values
+  var sub  = (document.getElementById('cfgSub')   || {value:''}).value || 'your-subscription-id';
+  var rg   = (document.getElementById('cfgRg')    || {value:''}).value || 'rg-agentic-bpc';
+  var proj = (document.getElementById('cfgProj')  || {value:''}).value || 'agentic-bpc-' + getDomain().id;
+  var reg  = (document.getElementById('cfgRegion')|| {value:'westeurope'}).value;
+  cfgState.subscription = sub;
+  cfgState.resourceGroup = rg;
+  cfgState.projectName = proj;
+  cfgState.region = reg;
+  cfgState.generating = true;
+  cfgState.generatedYaml = '';
+  renderConfig();
+
+  var d = getDomain();
+  var agentList = d.agents.map(function(a) { return a.label; }).join(', ');
+  var stepList  = d.steps.map(function(s) { return s.num + ' ' + s.name; }).join('; ');
+
+  var NL = '\n';
+  var prompt = [
+    'Generate a production-ready Azure AI Foundry agent deployment configuration in YAML format.',
+    'Process domain: ' + d.name + ' (BPC ' + d.num + ')',
+    'Industry: ' + IND_NAME,
+    'Agents required: ' + agentList,
+    'Key process steps: ' + stepList,
+    'LLM model: ' + cfgState.model,
+    'Execution mode: ' + cfgState.mode,
+    'Data sources: ' + cfgState.sources.join(', '),
+    'Azure subscription: ' + sub,
+    'Resource group: ' + rg,
+    'Project name: ' + proj,
+    'Azure region: ' + reg,
+    'Requirements:',
+    '- Use Azure AI Foundry agent manifest schema (azureml/schemas/2024-01-01/agent-workflow.json)',
+    '- Include workspace, connections, orchestrator, agents array, skills, guardrails, monitoring',
+    '- Each agent: name, role, model, system_prompt specific to ' + IND_NAME + ', tools, capabilities',
+    '- Include D365 and data source connection configs',
+    '- Add guardrails: spend_threshold, require_human_approval rules, audit_log',
+    '- Add monitoring: app_insights, key metrics, alert thresholds',
+    '- Add deployment: serverless compute, auto_scale',
+    '- Output ONLY valid YAML. No explanation, no markdown fences, no preamble.'
+  ].join(NL);
+
+  try {
+    var resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 2000,
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+    var data = await resp.json();
+    var yaml = '';
+    if (data.content && data.content[0]) {
+      yaml = data.content[0].text || '';
+      // strip any accidental markdown fences
+      var fence = String.fromCharCode(96,96,96); if(yaml.indexOf(fence)!==-1){var parts=yaml.split(fence);yaml=parts[1]?parts[1].replace(/^[a-z]*/,'').trim():yaml.trim();}
+    }
+    cfgState.generatedYaml = yaml || '# Generation failed — please try again.';
+  } catch(err) {
+    cfgState.generatedYaml = '# Error: ' + err.message;
+  }
+
+  cfgState.generating = false;
+  renderConfig();
+}
+
+// Config event delegation — attach to document so it works after re-renders
+document.addEventListener('click', function(e) {
+  var t = e.target;
+
+  if (t.dataset.cfgModel) {
+    cfgState.model = t.dataset.cfgModel;
+    renderConfig(); return;
+  }
+  if (t.dataset.cfgMode) {
+    cfgState.mode = t.dataset.cfgMode;
+    renderConfig(); return;
+  }
+  if (t.dataset.cfgSrc) {
+    var s = t.dataset.cfgSrc;
+    var si = cfgState.sources.indexOf(s);
+    if (si === -1) cfgState.sources.push(s); else cfgState.sources.splice(si, 1);
+    renderConfig(); return;
+  }
+  if (t.dataset.cfgGenerate) {
+    generateFoundryConfig(); return;
+  }
+  if (t.dataset.cfgCopy) {
+    var el = document.getElementById('yamlOutput');
+    if (el) navigator.clipboard.writeText(el.textContent).then(function() {
+      t.textContent = 'Copied!';
+      setTimeout(function() { t.textContent = 'Copy'; }, 2000);
+    });
+    return;
+  }
+  if (t.dataset.cfgDl) {
+    if (!cfgState.generatedYaml) return;
+    var blob = new Blob([cfgState.generatedYaml], {type:'text/yaml'});
+    var url  = URL.createObjectURL(blob);
+    var a    = document.createElement('a');
+    a.href = url;
+    a.download = getDomain().id + '_' + IND_NAME.toLowerCase().replace(/s+/g,'-') + '_foundry.yaml';
+    a.click();
+    URL.revokeObjectURL(url);
+    return;
+  }
+});
+
+function switchTab(tab) {
+  activeTab = tab;
+  document.querySelectorAll('.panel-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('tab-' + tab).classList.add('active');
+  if (tab === 'log') renderLog();
+  else if (tab === 'output') renderOutput();
+  else if (tab === 'assess') renderAssess();
+  else renderConfig();
+}
+
+// ── ASSESSMENT WIZARD ──────────────────────────────────────────
+const ASSESS_STEPS = 3;
+let assessStep = 1;
+let assessData = { processes: [], volume: '', it: [], oversight: '' };
+
+const ALL_PROCESS_NAMES = [
+  'Order to Cash','Source to Pay','Hire to Retire','Record to Report',
+  'Project to Profit','Acquire to Dispose','Plan to Produce',
+  'Inventory to Deliver','Prospect to Quote','Service to Deliver',
+  'Case to Resolution','Forecast to Plan','Concept to Market',
+  'Design to Retire','Administer to Operate'
+];
+
+const IT_OPTIONS = [
+  'Microsoft Dynamics 365','SAP','Oracle','Workday',
+  'Salesforce','NetSuite','Spreadsheets / No ERP','Other'
+];
+
+function renderAssess() {
+  if (activeTab !== 'assess') return;
+  const pc = document.getElementById('panelContent');
+  if (assessStep === 1) pc.innerHTML = renderAssessStep1();
+  else if (assessStep === 2) pc.innerHTML = renderAssessStep2();
+  else if (assessStep === 3) pc.innerHTML = renderAssessStep3();
+  else pc.innerHTML = renderAssessResult();
+}
+
+function renderAssessStep1() {
+  const pills = ALL_PROCESS_NAMES.map(function(p) {
+    const on = assessData.processes.includes(p);
+    return '<span class="a-pill' + (on ? ' on' : '') + '" data-proc="' + p + '">' + p + '</span>';
+  }).join('');
+  return '<div class="a-wizard">' +
+    '<div class="a-step-bar"><div class="a-step-fill" style="width:33%"></div></div>' +
+    '<div class="a-step-label">Step 1 of 3</div>' +
+    '<div class="a-step-title">Which processes do you want to automate?</div>' +
+    '<div class="a-step-sub">Select all that apply. You can change this later.</div>' +
+    '<div class="a-pills">' + pills + '</div>' +
+    '<div class="a-actions"><span></span>' +
+    '<button class="a-btn" data-next="1">Next</button>' +
+    '</div></div>';
+}
+
+function renderAssessStep2() {
+  var volOpts = [
+    {v:'xs', l:'Small',      s:'Under 1,000 transactions / month'},
+    {v:'sm', l:'Medium',     s:'1,000 to 10,000 / month'},
+    {v:'md', l:'Large',      s:'10,000 to 100,000 / month'},
+    {v:'lg', l:'Enterprise', s:'100,000+ / month'},
+  ];
+  var volHtml = volOpts.map(function(o) {
+    return '<div class="a-radio' + (assessData.volume === o.v ? ' on' : '') + '" data-vol="' + o.v + '">' +
+      '<div class="a-radio-dot"></div>' +
+      '<div><div class="a-radio-label">' + o.l + '</div><div class="a-radio-sub">' + o.s + '</div></div>' +
+      '</div>';
+  }).join('');
+  var itHtml = IT_OPTIONS.map(function(it) {
+    var on = assessData.it.includes(it);
+    return '<span class="a-pill' + (on ? ' on' : '') + '" data-it="' + it + '">' + it + '</span>';
+  }).join('');
+  return '<div class="a-wizard">' +
+    '<div class="a-step-bar"><div class="a-step-fill" style="width:66%"></div></div>' +
+    '<div class="a-step-label">Step 2 of 3</div>' +
+    '<div class="a-step-title">Scale and IT landscape</div>' +
+    '<div class="a-field-label">Monthly transaction volume</div>' +
+    '<div class="a-radios">' + volHtml + '</div>' +
+    '<div class="a-field-label" style="margin-top:14px">Current IT systems</div>' +
+    '<div class="a-pills">' + itHtml + '</div>' +
+    '<div class="a-actions">' +
+    '<button class="a-btn-ghost" data-back="1">Back</button>' +
+    '<button class="a-btn" data-next="1">Next</button>' +
+    '</div></div>';
+}
+
+function renderAssessStep3() {
+  var opts = [
+    {v:'auto',  l:'Fully autonomous', s:'Agents act without approval. Maximum speed.'},
+    {v:'super', l:'Supervised',       s:'Agents act; humans review exceptions only.'},
+    {v:'hil',   l:'Human-in-loop',    s:'Human approves every key decision.'},
+  ];
+  var html = opts.map(function(o) {
+    return '<div class="a-radio' + (assessData.oversight === o.v ? ' on' : '') + '" data-oversight="' + o.v + '">' +
+      '<div class="a-radio-dot"></div>' +
+      '<div><div class="a-radio-label">' + o.l + '</div><div class="a-radio-sub">' + o.s + '</div></div>' +
+      '</div>';
+  }).join('');
+  return '<div class="a-wizard">' +
+    '<div class="a-step-bar"><div class="a-step-fill" style="width:100%"></div></div>' +
+    '<div class="a-step-label">Step 3 of 3</div>' +
+    '<div class="a-step-title">How much human oversight do you need?</div>' +
+    '<div class="a-radios">' + html + '</div>' +
+    '<div class="a-actions">' +
+    '<button class="a-btn-ghost" data-back="1">Back</button>' +
+    '<button class="a-btn a-btn-go" data-next="1">Generate Assessment</button>' +
+    '</div></div>';
+}
+
+function renderAssessResult() {
+  const d = assessData;
+  const procCount = d.processes.length || 3;
+  const volMap    = {xs:1, sm:2, md:3, lg:4};
+  const volScore  = volMap[d.volume] || 2;
+  const itBonus   = d.it.includes('Spreadsheets / No ERP') ? 1 : 0;
+  const hilMod    = d.oversight === 'hil' ? 1 : d.oversight === 'auto' ? -1 : 0;
+  const regulated = false;
+  const complianceExtra = regulated ? 1 : 0;
+
+  // Agent count: 1 orchestrator + avg 4-5 domain agents × processes, scaled by volume
+  const basePerProc = 4 + Math.round(volScore * 0.5);
+  const rawAgents   = 1 + procCount * basePerProc;
+  const totalAgents = Math.max(4, Math.round(rawAgents * (d.oversight === 'hil' ? 1.15 : 1)) + complianceExtra + itBonus);
+
+  // Compute instances = agents × parallelism
+  const parallelism = volScore >= 3 ? 3 : volScore === 2 ? 2 : 1;
+  const instances   = totalAgents * parallelism;
+
+  // Cost estimate (Azure AI Foundry + OpenAI tokens approx)
+  const monthlyBase = totalAgents * 180; // ~€180/agent/month for infra + model calls
+  const volMult     = [1, 1.4, 2.2, 3.8][volScore - 1];
+  const monthlyCost = Math.round(monthlyBase * volMult / 100) * 100;
+  const setupCost   = Math.round(procCount * 4200 / 100) * 100;
+
+  // Timeline
+  const phases = [
+    { phase:'Phase 1 — Foundation', weeks: Math.max(2, procCount), what:'Azure AI Foundry setup, data connectors, Orchestrator agent' },
+    { phase:'Phase 2 — Pilot Processes', weeks: Math.max(4, procCount * 2), what: (d.processes.slice(0,2).join(', ') || 'First 2 selected processes') + ' deployed and validated' },
+    { phase:'Phase 3 — Full Rollout', weeks: Math.max(6, procCount * 3), what:'All ' + procCount + ' selected processes live with monitoring' },
+  ];
+  const totalWeeks = phases.reduce((s,p) => s + p.weeks, 0);
+
+  const phaseHtml = phases.map(p =>
+    '<div class="a-phase">' +
+    '<div class="a-phase-top"><span class="a-phase-name">' + p.phase + '</span><span class="a-phase-weeks">' + p.weeks + ' wks</span></div>' +
+    '<div class="a-phase-what">' + p.what + '</div>' +
+    '</div>'
+  ).join('');
+
+  const procListHtml = d.processes.length
+    ? d.processes.map(p => '<span class="a-tag">' + p + '</span>').join('')
+    : '<span class="a-tag">Not specified</span>';
+
+  const itListHtml = d.it.length
+    ? d.it.map(i => '<span class="a-tag">' + i + '</span>').join('')
+    : '<span class="a-tag">Not specified</span>';
+
+  return '<div class="a-result">' +
+
+    // Summary cards
+    '<div class="a-result-title">Your Deployment Assessment</div>' +
+    '<div class="a-result-sub">Manufacturing · ' + procCount + ' processes · ' + (d.volume || 'medium') + ' volume</div>' +
+    '<div class="a-cards">' +
+      '<div class="a-card"><div class="a-card-val">' + totalAgents + '</div><div class="a-card-lbl">Total Agents</div></div>' +
+      '<div class="a-card"><div class="a-card-val">' + instances + '</div><div class="a-card-lbl">Instances</div></div>' +
+      '<div class="a-card a-card-cost"><div class="a-card-val">€' + monthlyCost.toLocaleString() + '</div><div class="a-card-lbl">Est. / month</div></div>' +
+      '<div class="a-card"><div class="a-card-val">' + totalWeeks + ' wk</div><div class="a-card-lbl">To Full Go-live</div></div>' +
+    '</div>' +
+
+    // Setup cost
+    '<div class="a-setup-row"><span class="a-setup-label">One-time setup and implementation</span><span class="a-setup-val">€' + setupCost.toLocaleString() + '</span></div>' +
+
+    // Compliance note
+    (regulated ? '<div class="a-note">⚠️ Regulated industry: +1 Compliance Agent included. Audit logging and human escalation guardrails mandatory.</div>' : '') +
+    (itBonus ? '<div class="a-note">⚡ No ERP detected: +1 Data Connector Agent recommended to bridge spreadsheet data sources.</div>' : '') +
+
+    // Timeline
+    '<div class="a-section-title">Deployment Timeline</div>' +
+    '<div class="a-phases">' + phaseHtml + '</div>' +
+
+    // What customer needs to do
+    '<div class="a-section-title">What you need to prepare</div>' +
+    '<div class="a-checklist">' +
+      '<div class="a-check">✦ Azure subscription with AI Foundry enabled</div>' +
+      '<div class="a-check">✦ API access to your ERP/CRM systems: ' + (d.it.join(', ') || 'to be confirmed') + '</div>' +
+      '<div class="a-check">✦ Data owner per process domain for validation sign-off</div>' +
+      '<div class="a-check">✦ IT team availability: approx ' + Math.round(procCount * 1.5) + ' days during phases 1 and 2</div>' +
+      '<div class="a-check">✦ Define approval thresholds for autonomous agent actions</div>' +
+      (regulated ? '<div class="a-check">✦ Compliance and legal sign-off on agent decision boundaries</div>' : '') +
+    '</div>' +
+
+    // Selected processes
+    '<div class="a-section-title">Selected Processes</div>' +
+    '<div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:14px">' + procListHtml + '</div>' +
+
+    '<div class="a-section-title">IT Landscape</div>' +
+    '<div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:18px">' + itListHtml + '</div>' +
+
+    '<button class="a-btn-ghost" style="width:100%;margin-top:4px" data-reset="1">Start over</button>' +
+    '</div>';
+}
+
+// ── ASSESSMENT EVENT DELEGATION ───────────────────────────────
+document.getElementById('panelContent').addEventListener('click', function(e) {
+  var t = e.target;
+
+  // Process pill toggle (step 1)
+  if (t.dataset.proc) {
+    var name = t.dataset.proc;
+    var idx = assessData.processes.indexOf(name);
+    if (idx === -1) assessData.processes.push(name); else assessData.processes.splice(idx, 1);
+    t.classList.toggle('on');
+    return;
+  }
+
+  // Volume radio (step 2)
+  var volEl = t.closest('[data-vol]');
+  if (volEl) {
+    assessData.volume = volEl.dataset.vol;
+    renderAssess(); return;
+  }
+
+  // IT pill toggle (step 2)
+  if (t.dataset.it) {
+    var it = t.dataset.it;
+    var idx2 = assessData.it.indexOf(it);
+    if (idx2 === -1) assessData.it.push(it); else assessData.it.splice(idx2, 1);
+    t.classList.toggle('on');
+    return;
+  }
+
+  // Oversight radio (step 3)
+  var ovEl = t.closest('[data-oversight]');
+  if (ovEl) {
+    assessData.oversight = ovEl.dataset.oversight;
+    renderAssess(); return;
+  }
+
+  // Next button
+  if (t.dataset.next) {
+    if (assessStep < 4) assessStep++;
+    renderAssess(); return;
+  }
+
+  // Back button
+  if (t.dataset.back) {
+    if (assessStep > 1) assessStep--;
+    renderAssess(); return;
+  }
+
+  // Reset button
+  if (t.dataset.reset) {
+    assessStep = 1;
+    assessData = { processes: [], volume: '', it: [], oversight: '' };
+    renderAssess(); return;
+  }
+});
+
+async function runProcess() {
+  if (running) return;
+  running = true;
+  document.getElementById('runBtn').disabled = true;
+  document.getElementById('runBtn').innerHTML = '<span class="spinner"></span>Running…';
+  const d = getDomain();
+  logEntries = []; outputBlocks = []; stepStatuses = {};
+  renderSteps(); renderLog();
+
+  addLog('info', '<b>Orchestrator</b> initialising ' + d.name + ' — ' + IND_NAME + '…');
+  addLog('agent', '🧠 Orchestrator: Loaded <b>' + d.steps.length + ' process steps</b> for ' + IND_NAME);
+  await delay(500);
+  addLog('agent', '🧠 Orchestrator: Dispatching <b>' + d.agents.length + ' agents</b>…');
+  d.steps.forEach(s => setStepStatus(s.num, 'waiting'));
+  await delay(300);
+
+  for (let i = 0; i < d.steps.length; i++) {
+    const step = d.steps[i];
+    setStepStatus(step.num, 'running');
+    addLog('agent', '🤖 <b>' + step.agent + '</b>: Starting <b>' + step.name + '</b>');
+    highlightAgent(step.agent, 'running');
+    outputBlocks.push({agent: step.agent, step: step.name, text: step.output, done: false});
+    renderOutput();
+    await delay(900 + Math.random() * 600);
+    setStepStatus(step.num, 'done');
+    outputBlocks[outputBlocks.length - 1].done = true;
+    highlightAgent(step.agent, 'done');
+    addLog('success', '✓ <b>' + step.agent + '</b> completed <b>' + step.name + '</b>');
+    renderOutput();
+    await delay(150);
+  }
+
+  await delay(400);
+  addLog('success', '✅ <b>All steps complete.</b> ' + d.name + ' process executed for ' + IND_NAME + '.');
+  document.getElementById('runBtn').disabled = false;
+  document.getElementById('runBtn').innerHTML = '▶ Run Agentic Process';
+  running = false;
+  switchTab('output');
+}
+
+function resetProcess() {
+  if (running) return;
+  stepStatuses = {}; logEntries = []; outputBlocks = [];
+  renderAgentFlow(); renderSteps();
+  if (activeTab === 'log') renderLog();
+  else if (activeTab === 'output') renderOutput();
+  document.getElementById('runBtn').disabled = false;
+  document.getElementById('runBtn').innerHTML = '▶ Run Agentic Process';
+  document.getElementById('progressFill').style.width = '0%';
+  document.getElementById('progressLabel').textContent = '0 / ' + getDomain().steps.length;
+}
+
+function delay(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+// INIT
+selectDomain(DOMAINS[0].id, true);
+renderDomainHeader();
+renderAgentFlow();
+renderSteps();
+renderLog();
+renderConfig();
+</script>
+</body>
+</html>

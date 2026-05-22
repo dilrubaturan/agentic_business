@@ -614,60 +614,141 @@ function aNext(){
 }
 
 function renderAssessResult(){
-  const recs=mapProcesses(assessData);
-  const col=ind().color;
-  const n=recs.length;
-  const sizeMul={micro:1,small:2,mid:4,enterprise:8}[assessData.size]||3;
-  const aiMul={exploring:1,piloting:1.5,scaling:2,advanced:3}[assessData.aiready]||1.5;
-  const agents=Math.round(n*4*Math.min(aiMul,2));
-  const monthly=Math.round(n*sizeMul*280);
-  const setup=Math.round(n*sizeMul*3800);
-  const phase1=recs.slice(0,2).map(r=>r.proc.name);
-  const phase2=recs.slice(2,5).map(r=>r.proc.name);
-  const phase3=recs.slice(5).map(r=>r.proc.name);
-  const indLabel=DATA.INDUSTRIES.find(i=>i.id===assessData.industry)?.name||'Your industry';
+  const recs = mapProcesses(assessData);
+  const col = ind().color;
+  const n = recs.length;
+  const sizeMul = {micro:1,small:2,mid:4,enterprise:8}[assessData.size]||3;
+  const aiMul = {exploring:1,piloting:1.5,scaling:2,advanced:3}[assessData.aiready]||1.5;
+  const monthly = Math.round(n*sizeMul*280);
+  const setup = Math.round(n*sizeMul*3800);
+  const indLabel = DATA.INDUSTRIES.find(i=>i.id===assessData.industry)?.name||'Your industry';
+  const sizeLabel = {micro:'Under 50 employees',small:'50–250 employees',mid:'250–2,500 employees',enterprise:'Over 2,500 employees'}[assessData.size]||assessData.size;
+  const aiLabel = {exploring:'Exploring',piloting:'Piloting',scaling:'Scaling',advanced:'Advanced'}[assessData.aiready]||assessData.aiready;
+  const date = new Date().toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'});
+
+  // Build per-process agent details
+  // Each process has its own agent list — collect unique agents across all recommended processes
+  const allAgentRoles = {};
+  let totalAgentCount = 0;
+  recs.forEach(r => {
+    r.proc.agents.forEach(a => {
+      const key = a.role;
+      if(!allAgentRoles[key]){
+        allAgentRoles[key] = {icon:a.icon, label:a.label, role:a.role, processes:[]};
+        totalAgentCount++;
+      }
+      allAgentRoles[key].processes.push(r.proc.name);
+    });
+  });
+  const uniqueAgents = Object.values(allAgentRoles);
+
+  // Phase breakdown
+  const phases = [
+    {label:'Phase 1', period:'Months 0–3', tag:'Foundation', items:recs.slice(0,2)},
+    {label:'Phase 2', period:'Months 3–6', tag:'Expansion', items:recs.slice(2,5)},
+    {label:'Phase 3', period:'Months 6–12', tag:'Optimisation', items:recs.slice(5)},
+  ].filter(p=>p.items.length>0);
+
   $('assess-panel').innerHTML=`
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-      <div style="font-size:12px;font-weight:600;color:var(--text)">Your AI process roadmap</div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+      <div style="font-size:12px;font-weight:700;color:var(--text);font-family:'Syne',sans-serif">AI Readiness Report</div>
       <button class="a-back" onclick="assessStep=0;assessData={};renderAssess()">Start over</button>
     </div>
-    <div style="background:var(--surface2);border-radius:5px;padding:9px 11px;margin-bottom:10px;border:1px solid var(--border)">
-      <div style="font-size:10px;color:var(--muted);margin-bottom:2px;font-family:var(--mono);text-transform:uppercase;letter-spacing:.06em">${indLabel} · ${assessData.size||''}</div>
-      <div style="font-size:11px;color:var(--muted);line-height:1.6">Based on your operations and pain points, we identified <strong style="color:var(--text)">${n} process domains</strong> where agentic AI will have the highest impact.</div>
+
+    <!-- Meta strip -->
+    <div style="background:var(--surface2);border:1px solid var(--border);border-radius:5px;padding:8px 11px;margin-bottom:12px;display:flex;gap:12px;flex-wrap:wrap">
+      <div style="font-size:10px;color:var(--muted);font-family:var(--mono)">${indLabel}</div>
+      <div style="font-size:10px;color:var(--border)">|</div>
+      <div style="font-size:10px;color:var(--muted);font-family:var(--mono)">${sizeLabel}</div>
+      <div style="font-size:10px;color:var(--border)">|</div>
+      <div style="font-size:10px;color:var(--muted);font-family:var(--mono)">AI: ${aiLabel}</div>
+      <div style="font-size:10px;color:var(--border)">|</div>
+      <div style="font-size:10px;color:var(--muted);font-family:var(--mono)">${date}</div>
     </div>
-    <div class="ar-grid" style="margin-bottom:10px">
-      <div class="ar-metric"><div class="arv" style="color:${col}">${agents}</div><div class="arl">Agents</div></div>
+
+    <!-- KPI row -->
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px;margin-bottom:12px">
+      <div class="ar-metric"><div class="arv" style="color:${col}">${n}</div><div class="arl">Processes</div></div>
+      <div class="ar-metric"><div class="arv" style="color:${col}">${totalAgentCount}</div><div class="arl">Agent types</div></div>
       <div class="ar-metric"><div class="arv" style="color:${col}">€${(monthly/1000).toFixed(0)}K</div><div class="arl">/ month</div></div>
       <div class="ar-metric"><div class="arv" style="color:${col}">€${(setup/1000).toFixed(0)}K</div><div class="arl">setup</div></div>
     </div>
-    <div style="margin-bottom:10px">
-      <div class="ar-check-title" style="margin-bottom:6px">Recommended processes — ranked by impact</div>
+
+    <!-- Section: Recommended processes -->
+    <div style="font-size:10px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);margin-bottom:6px">Recommended Process Domains</div>
+    <div style="margin-bottom:12px">
       ${recs.map((r,i)=>`
-        <div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border)">
-          <div style="width:18px;height:18px;border-radius:3px;background:${i<2?col:'var(--surface2)'};display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:${i<2?'#000':'var(--muted)'};flex-shrink:0;font-family:var(--mono)">${i+1}</div>
+        <div style="display:flex;align-items:flex-start;gap:8px;padding:7px 0;border-bottom:1px solid var(--border)">
+          <div style="width:20px;height:20px;border-radius:3px;background:${i<2?col:i<5?'color-mix(in srgb,'+col+' 30%,var(--surface2))':'var(--surface2)'};display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:${i<2?'#000':'var(--muted)'};flex-shrink:0;font-family:var(--mono);margin-top:1px">${i+1}</div>
           <div style="flex:1;min-width:0">
-            <div style="font-size:11px;font-weight:600;color:var(--text)">${r.proc.name}</div>
-            <div style="font-size:10px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${r.proc.desc.split('.')[0]}</div>
+            <div style="display:flex;align-items:center;gap:6px;margin-bottom:2px">
+              <span style="font-size:11px;font-weight:600;color:var(--text)">${r.proc.icon} ${r.proc.name}</span>
+              <span style="font-size:9px;font-family:var(--mono);color:var(--muted);background:var(--surface2);padding:1px 5px;border-radius:3px;border:1px solid var(--border)">${r.proc.num}</span>
+              ${i<2?`<span style="font-size:9px;font-family:var(--mono);color:#000;background:${col};padding:1px 6px;border-radius:3px">priority</span>`:''}
+            </div>
+            <div style="font-size:10px;color:var(--muted);line-height:1.5">${r.proc.desc.split('.')[0]}.</div>
+            <div style="display:flex;gap:4px;margin-top:4px;flex-wrap:wrap">
+              ${r.proc.agents.filter(a=>a.role!=='orchestrator').map(a=>`<span style="font-size:9px;font-family:var(--mono);color:var(--muted);border:1px solid var(--border);padding:1px 6px;border-radius:3px">${a.icon} ${a.label}</span>`).join('')}
+            </div>
           </div>
-          <div style="font-size:9px;font-family:var(--mono);color:var(--muted);flex-shrink:0">${r.proc.num}</div>
         </div>`).join('')}
     </div>
-    <div class="ar-phases" style="margin-bottom:10px">
-      <strong>Phase 1 (0–3 mo):</strong> ${phase1.join(', ')}<br>
-      ${phase2.length?`<strong>Phase 2 (3–6 mo):</strong> ${phase2.join(', ')}<br>`:''}
-      ${phase3.length?`<strong>Phase 3 (6–12 mo):</strong> ${phase3.join(', ')}<br>`:''}
-      <strong>Oversight model:</strong> ${assessData.oversight||'—'}
+
+    <!-- Section: Agent inventory -->
+    <div style="font-size:10px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);margin-bottom:6px">Agent Inventory (${totalAgentCount} types)</div>
+    <div style="margin-bottom:12px;display:flex;flex-direction:column;gap:4px">
+      ${uniqueAgents.map(a=>`
+        <div style="display:flex;align-items:center;gap:8px;padding:5px 8px;background:var(--surface2);border:1px solid var(--border);border-radius:4px">
+          <span style="font-size:14px;flex-shrink:0">${a.icon}</span>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:11px;font-weight:600;color:var(--text)">${a.label}</div>
+            <div style="font-size:10px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${a.processes.slice(0,3).join(', ')}${a.processes.length>3?' +'+( a.processes.length-3)+' more':''}</div>
+          </div>
+          <div style="font-size:9px;font-family:var(--mono);color:var(--muted);background:var(--surface);padding:2px 6px;border-radius:3px;flex-shrink:0">${a.role==='orchestrator'?'orchestrator':'specialist'}</div>
+        </div>`).join('')}
     </div>
-    <div class="ar-check">
-      <div class="ar-check-title">Preparation checklist</div>
-      <ul>
-        <li>D365 API credentials and environment access</li>
-        <li>Process owner sign-off per domain</li>
-        <li>Data quality baseline completed</li>
-        <li>Azure AI Foundry subscription provisioned</li>
-        <li>Change management plan in place</li>
-        <li>Governance and escalation matrix defined</li>
-      </ul>
+
+    <!-- Section: Implementation roadmap -->
+    <div style="font-size:10px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);margin-bottom:6px">Implementation Roadmap</div>
+    <div style="margin-bottom:12px;display:flex;flex-direction:column;gap:6px">
+      ${phases.map((ph,pi)=>`
+        <div style="border:1px solid var(--border);border-radius:5px;overflow:hidden">
+          <div style="display:flex;align-items:center;gap:8px;padding:6px 10px;background:${pi===0?'color-mix(in srgb,'+col+' 8%,var(--surface2))':'var(--surface2)'}">
+            <div style="width:6px;height:6px;border-radius:50%;background:${pi===0?col:pi===1?'color-mix(in srgb,'+col+' 50%,var(--muted))':'var(--muted)'}"></div>
+            <span style="font-size:11px;font-weight:600;color:var(--text)">${ph.label} — ${ph.tag}</span>
+            <span style="font-size:10px;color:var(--muted);margin-left:auto;font-family:var(--mono)">${ph.period}</span>
+          </div>
+          <div style="padding:6px 10px;display:flex;flex-wrap:wrap;gap:4px">
+            ${ph.items.map(r=>`<span style="font-size:10px;color:var(--text);background:var(--surface);border:1px solid var(--border);padding:2px 7px;border-radius:3px">${r.proc.icon} ${r.proc.name}</span>`).join('')}
+          </div>
+        </div>`).join('')}
+    </div>
+
+    <!-- Section: Oversight -->
+    <div style="background:var(--surface2);border:1px solid var(--border);border-radius:5px;padding:8px 11px;margin-bottom:12px">
+      <div style="font-size:10px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);margin-bottom:4px">Oversight Model</div>
+      <div style="font-size:11px;color:var(--text)">${assessData.oversight||'—'}</div>
+    </div>
+
+    <!-- Section: Checklist -->
+    <div style="font-size:10px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);margin-bottom:6px">Preparation Checklist</div>
+    <div style="display:flex;flex-direction:column;gap:3px">
+      ${[
+        'D365 API credentials and environment access',
+        'Process owner sign-off per domain',
+        'Data quality baseline completed',
+        'Azure AI Foundry subscription provisioned',
+        'Change management plan in place',
+        'Governance and escalation matrix defined',
+        'Security and compliance review completed',
+        'Integration architecture sign-off',
+      ].map(item=>`
+        <div style="display:flex;align-items:center;gap:7px;padding:4px 0;border-bottom:1px solid var(--border)">
+          <div style="width:14px;height:14px;border:1px solid var(--border);border-radius:3px;flex-shrink:0;display:flex;align-items:center;justify-content:center">
+            <div style="width:6px;height:6px;border-radius:1px;background:transparent"></div>
+          </div>
+          <span style="font-size:11px;color:var(--muted)">${item}</span>
+        </div>`).join('')}
     </div>`;
 }
 

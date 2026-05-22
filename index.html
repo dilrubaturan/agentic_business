@@ -718,37 +718,126 @@ function renderConfig(){
   });
 }
 
-async function genConfig(){
+function genConfig(){
   const p=proc(), i=ind();
   const btn=$('cfg-gen-btn'), out=$('cfg-out');
-  cfgState.endpoint=$('az-ep')?.value||'';
-  cfgState.rg=$('az-rg')?.value||'';
-  btn.disabled=true; btn.textContent='Generating...';
-  out.style.display='block'; out.textContent='Calling Claude API...';
+  cfgState.endpoint=$('az-ep')?.value||'https://your-resource.openai.azure.com/';
+  cfgState.rg=$('az-rg')?.value||'rg-agentic-bpc-prod';
 
-  const prompt=`Generate a production Azure AI Foundry YAML config for:
-Process: ${p.num} - ${p.name}
-Industry: ${i.name}
-Model: ${cfgState.model}
-Mode: ${cfgState.mode}
-Data sources: ${(cfgState.sources||[]).join(', ')}
-Agents: ${p.agents.map(a=>a.label).join(', ')}
-Steps: ${steps().map(s=>s.name).join(', ')}
-Return ONLY valid YAML with: project metadata, agent definitions (role, model, tools, guardrails), data_sources, orchestration, monitoring, audit_log, managed_identity, spend_threshold. No explanation, no markdown fences.`;
+  const ts = new Date().toISOString();
+  const filename = `bpc-${p.num}-${curInd}.yaml`;
 
-  try{
-    const res=await fetch('https://api.anthropic.com/v1/messages',{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({model:'claude-sonnet-4-5',max_tokens:1000,messages:[{role:'user',content:prompt}]})
-    });
-    const data=await res.json();
-    const text=(data.content||[]).map(c=>c.text||'').join('').replace(/```ya?ml|```/gi,'').trim();
-    out.textContent=text;
-    $('cfg-acts').style.display='flex';
-    window._yaml=text;
-  } catch(e){ out.textContent='Error: '+e.message; }
-  btn.disabled=false; btn.textContent='Generate AI Foundry Config';
+  const agentDefs = p.agents.map(a => {
+    const isOrch = a.role === 'orchestrator';
+    const agentSteps = isOrch ? [] : steps().filter(s => s.agent === a.label);
+    const toolList = (cfgState.sources||['D365']).map(s=>'- '+s.toLowerCase().replace(/\s+/g,'_')+'_reader').join('\n      ');
+    const taskList = agentSteps.length
+      ? agentSteps.map(s=>'- "'+s.name+'"').join('\n      ')
+      : '- general_tasks';
+    const delegateList = isOrch
+      ? p.agents.filter(x=>x.role!=='orchestrator').map(x=>'- '+x.role+'-agent').join('\n      ')
+      : '';
+    return (
+      '  - id: '+a.role+'-agent\n'+
+      '    label: "'+a.label+'"\n'+
+      '    role: '+(isOrch?'orchestrator':'specialist')+'\n'+
+      '    model: '+cfgState.model+'\n'+
+      '    tools:\n'+
+      '      - dynamics365_connector\n'+
+      '      '+toolList+'\n'+
+      (isOrch
+        ? '    delegates_to:\n      '+delegateList
+        : '    handles:\n      '+taskList)+'\n'+
+      '    guardrails:\n'+
+      '      max_tokens_per_call: 2000\n'+
+      '      require_human_approval: '+(cfgState.mode==='Supervised'||cfgState.mode==='Manual approval')+'\n'+
+      '      log_all_actions: true'
+    );
+  }).join('\n\n');
+
+  const srcBlock = (cfgState.sources||['D365']).map(s=>{
+    const t = s==='D365'?'dynamics365':s==='Azure SQL'?'azure_sql':s==='SharePoint'?'sharepoint':s==='Dataverse'?'dataverse':s==='SAP'?'sap_connector':'azure_blob';
+    return '  - name: "'+s+'"\n    type: '+t+'\n    auth: managed_identity\n    read_only: '+(s!=='D365');
+  }).join('\n');
+
+  const yaml =
+`# Azure AI Foundry — Agentic BPC Configuration
+# Generated: ${ts}
+# Do not commit secrets to source control
+
+project:
+  name: agentic-bpc-${p.num}-${curInd}
+  description: "${p.name} — ${i.name} industry automation"
+  process_domain: "${p.num} — ${p.name}"
+  industry: "${i.name}"
+  version: "1.0.0"
+  generated_at: "${ts}"
+
+azure:
+  endpoint: "${cfgState.endpoint}"
+  resource_group: "${cfgState.rg}"
+  region: "eastus"
+  managed_identity:
+    enabled: true
+    type: system_assigned
+
+model:
+  default: "${cfgState.model}"
+  fallback: "claude-haiku-4-5"
+  temperature: 0.2
+  max_tokens: 2000
+
+agent_mode: "${cfgState.mode}"
+
+agents:
+${agentDefs}
+
+data_sources:
+${srcBlock}
+
+orchestration:
+  pattern: hierarchical
+  entry_point: orchestrator-agent
+  max_parallel_agents: ${p.agents.length - 1}
+  timeout_seconds: 300
+  retry_policy:
+    max_retries: 3
+    backoff_seconds: 5
+
+monitoring:
+  enabled: true
+  provider: azure_monitor
+  trace_all_agent_calls: true
+  alert_on_failure: true
+
+audit_log:
+  enabled: true
+  storage: azure_blob
+  retention_days: 90
+  include_inputs: true
+  include_outputs: true
+  tamper_proof: true
+
+guardrails:
+  spend_threshold_usd_per_day: 50
+  human_escalation_on_confidence_below: 0.75
+  block_pii_in_outputs: true
+
+compliance:
+  gdpr: true
+  data_residency: "EU"
+  audit_trail: true
+`;
+
+  window._yaml = yaml;
+  out.style.display = 'block';
+  out.textContent = yaml;
+  $('cfg-acts').style.display = 'flex';
+
+  const a = document.createElement('a');
+  a.href = 'data:text/yaml;charset=utf-8,' + encodeURIComponent(yaml);
+  a.download = filename;
+  a.click();
 }
 
 function copyYaml(){ navigator.clipboard.writeText(window._yaml||'').then(()=>alert('Copied!')); }

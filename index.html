@@ -1,0 +1,782 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Agentic BPC Framework</title>
+<style>
+:root{
+  --bg:#0a0c10;--surface:#11141a;--surface2:#181c24;--border:#232836;
+  --text:#e8eaf0;--muted:#6b7280;--radius:8px;
+  --font:'DM Sans',system-ui,sans-serif;--mono:'DM Mono',monospace;
+  --ic:#4f8ef7;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--text);font-family:var(--font);font-size:13px;height:100vh;display:flex;flex-direction:column;overflow:hidden;}
+
+/* ── TOP BAR ── */
+#topbar{background:var(--surface);border-bottom:1px solid var(--border);padding:0 16px;display:flex;align-items:center;gap:12px;height:48px;flex-shrink:0;}
+.logo{font-family:'Syne',sans-serif;font-size:14px;font-weight:700;color:var(--ic);white-space:nowrap;letter-spacing:.01em;}
+.sep{color:var(--border);font-size:16px;}
+#ind-tabs{display:flex;gap:3px;overflow-x:auto;scrollbar-width:none;}
+#ind-tabs::-webkit-scrollbar{display:none;}
+.ind-tab{display:flex;align-items:center;gap:5px;padding:5px 11px;border-radius:5px;cursor:pointer;white-space:nowrap;font-size:12px;color:var(--muted);border:1px solid transparent;transition:all .15s;}
+.ind-tab:hover{color:var(--text);background:var(--surface2);}
+.ind-tab.active{color:#fff;border-color:currentColor;background:color-mix(in srgb,currentColor 12%,transparent);}
+
+/* ── LAYOUT ── */
+#main{display:flex;flex:1;overflow:hidden;}
+
+/* ── LEFT SIDEBAR (process list) ── */
+#sidebar{width:188px;flex-shrink:0;background:var(--surface);border-right:1px solid var(--border);overflow-y:auto;padding:8px 0;}
+#sidebar::-webkit-scrollbar{width:3px;}
+#sidebar::-webkit-scrollbar-thumb{background:var(--border);}
+.sidebar-label{font-size:10px;font-weight:600;letter-spacing:.08em;color:var(--muted);text-transform:uppercase;padding:8px 12px 4px;}
+.proc-btn{width:100%;text-align:left;background:none;border:none;color:var(--muted);cursor:pointer;padding:6px 12px;font-size:12px;font-family:var(--font);display:flex;align-items:center;gap:7px;transition:all .12s;border-left:2px solid transparent;}
+.proc-btn:hover{color:var(--text);background:var(--surface2);}
+.proc-btn.active{color:var(--ic);border-left-color:var(--ic);background:color-mix(in srgb,var(--ic) 8%,transparent);}
+.proc-btn .pnum{font-size:10px;color:var(--muted);font-family:var(--mono);margin-left:auto;}
+
+/* ── CENTRE (simulation) ── */
+#centre{flex:1;display:flex;flex-direction:column;min-width:0;overflow:hidden;}
+#centre-scroll{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px;}
+#centre-scroll::-webkit-scrollbar{width:4px;}
+#centre-scroll::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
+
+/* ── RIGHT PANEL (assess + config) ── */
+#right{width:320px;flex-shrink:0;background:var(--surface);border-left:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;}
+#right-tabs{display:flex;border-bottom:1px solid var(--border);flex-shrink:0;}
+.right-tab{flex:1;padding:10px 8px;font-size:11px;font-weight:600;cursor:pointer;color:var(--muted);border-bottom:2px solid transparent;text-align:center;transition:all .15s;user-select:none;letter-spacing:.03em;}
+.right-tab.active{color:var(--text);border-bottom-color:var(--ic);}
+#right-body{flex:1;overflow-y:auto;padding:14px;}
+#right-body::-webkit-scrollbar{width:3px;}
+#right-body::-webkit-scrollbar-thumb{background:var(--border);}
+
+/* ── PROC HEADER ── */
+#proc-header{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;}
+.ph-badge{display:inline-flex;align-items:center;gap:5px;padding:2px 9px;border-radius:20px;font-size:10px;font-weight:600;margin-bottom:6px;border:1px solid currentColor;font-family:var(--mono);}
+.ph-top{display:flex;align-items:center;gap:10px;margin-bottom:5px;}
+.ph-num{font-family:var(--mono);font-size:10px;color:var(--muted);}
+.ph-title{font-family:'Syne',sans-serif;font-size:16px;font-weight:700;}
+.ph-desc{color:var(--muted);font-size:12px;line-height:1.5;}
+
+/* ── AGENT ARCHITECTURE ── */
+#agent-arch{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;}
+.arch-label{font-size:10px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);margin-bottom:12px;}
+.arch-svg-wrap{width:100%;overflow:visible;}
+.arch-node-box{fill:var(--surface2);stroke:var(--border);stroke-width:1;}
+.arch-node-box.orch{fill:color-mix(in srgb,var(--ic) 10%,#11141a);stroke:var(--ic);}
+.arch-node-label{font-family:'DM Mono',monospace;font-size:10px;fill:#6b7280;}
+.arch-node-title{font-family:'DM Sans',system-ui;font-size:11px;font-weight:600;fill:#e8eaf0;}
+.arch-connector{stroke:var(--border);stroke-width:1;fill:none;}
+.arch-connector.active{stroke:var(--ic);opacity:.5;}
+
+/* ── RUN BAR ── */
+#run-bar{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:10px 14px;display:flex;align-items:center;gap:10px;}
+#run-btn{display:flex;align-items:center;gap:6px;padding:7px 16px;background:var(--ic);color:#fff;border:none;border-radius:5px;font-family:var(--font);font-size:12px;font-weight:600;cursor:pointer;transition:opacity .15s;white-space:nowrap;}
+#run-btn:hover{opacity:.85;}
+#run-btn:disabled{opacity:.45;cursor:not-allowed;}
+#prog-wrap{flex:1;height:4px;background:var(--surface2);border-radius:2px;overflow:hidden;}
+#prog-bar{height:100%;width:0;background:var(--ic);border-radius:2px;transition:width .3s;}
+#prog-label{font-size:11px;color:var(--muted);font-family:var(--mono);white-space:nowrap;}
+
+/* ── STEPS GRID ── */
+#steps-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.step-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:12px;transition:border-color .2s;}
+.step-card.running{border-color:var(--ic);}
+.step-card.done{border-color:color-mix(in srgb,var(--ic) 35%,transparent);}
+.step-card.pending{opacity:.4;}
+.sc-top{display:flex;align-items:flex-start;gap:8px;margin-bottom:6px;}
+.sc-meta{flex:1;}
+.sc-num{font-family:var(--mono);font-size:10px;color:var(--muted);}
+.sc-name{font-weight:600;font-size:12px;color:var(--text);line-height:1.3;}
+.sc-agent{font-size:11px;color:var(--muted);margin-bottom:6px;}
+.sc-agent em{color:var(--ic);font-style:normal;}
+.sc-output{font-size:11.5px;color:var(--muted);line-height:1.55;border-top:1px solid var(--border);padding-top:7px;display:none;}
+.step-card.done .sc-output,.step-card.running .sc-output{display:block;}
+.sc-badge{display:inline-flex;align-items:center;gap:3px;font-size:10px;font-family:var(--mono);padding:1px 6px;border-radius:3px;}
+.sc-badge.running{background:color-mix(in srgb,#f5a623 15%,transparent);color:#f5a623;}
+.sc-badge.done{background:color-mix(in srgb,#1edb8b 15%,transparent);color:#1edb8b;}
+
+/* ── BOTTOM PANELS (log + output) ── */
+#bottom{background:var(--surface);border-top:1px solid var(--border);flex-shrink:0;}
+.bot-tabs{display:flex;border-bottom:1px solid var(--border);}
+.bot-tab{padding:8px 16px;font-size:11px;font-weight:600;cursor:pointer;color:var(--muted);border-bottom:2px solid transparent;transition:all .15s;user-select:none;letter-spacing:.03em;}
+.bot-tab.active{color:var(--text);border-bottom-color:var(--ic);}
+.bot-body{padding:12px;max-height:160px;overflow-y:auto;font-size:11.5px;}
+.bot-body::-webkit-scrollbar{width:3px;}
+.bot-body::-webkit-scrollbar-thumb{background:var(--border);}
+#log-body{font-family:var(--mono);color:#1edb8b;line-height:1.8;}
+.log-ts{color:var(--muted);}
+#out-body{color:var(--muted);line-height:1.6;}
+.out-item{margin-bottom:8px;padding:8px 10px;background:var(--surface2);border-radius:5px;border-left:2px solid var(--ic);}
+.out-step{font-weight:600;color:var(--text);font-size:11px;margin-bottom:3px;}
+
+/* ── ASSESS PANEL (right) ── */
+.r-section{margin-bottom:16px;}
+.r-title{font-size:10px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;}
+.assess-dots{display:flex;align-items:center;margin-bottom:14px;}
+.a-dot{width:24px;height:24px;border-radius:50%;border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:var(--muted);flex-shrink:0;cursor:pointer;font-family:var(--mono);}
+.a-dot.active{border-color:var(--ic);color:var(--ic);}
+.a-dot.done{border-color:#1edb8b;background:#1edb8b;color:#000;}
+.a-line{flex:1;height:1px;background:var(--border);margin:0 3px;}
+.a-form{display:none;}
+.a-form.active{display:block;}
+.a-q{font-weight:600;font-size:12px;margin-bottom:8px;color:var(--text);}
+.a-pills{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:10px;}
+.a-pill{padding:4px 10px;border-radius:4px;border:1px solid var(--border);font-size:11px;cursor:pointer;color:var(--muted);transition:all .15s;}
+.a-pill:hover{border-color:var(--ic);color:var(--text);}
+.a-pill.sel{border-color:var(--ic);background:color-mix(in srgb,var(--ic) 12%,transparent);color:var(--text);}
+.a-input{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:5px;padding:6px 10px;color:var(--text);font-family:var(--font);font-size:12px;margin-bottom:10px;}
+.a-input:focus{outline:none;border-color:var(--ic);}
+.a-btn{padding:7px 14px;background:var(--ic);color:#fff;border:none;border-radius:5px;font-family:var(--font);font-size:12px;font-weight:600;cursor:pointer;}
+.a-result{background:var(--surface2);border-radius:6px;padding:12px;border:1px solid var(--border);margin-top:10px;}
+.ar-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px;}
+.ar-metric{background:var(--surface);border-radius:5px;padding:8px;text-align:center;}
+.arv{font-size:18px;font-weight:700;color:var(--ic);font-family:var(--mono);}
+.arl{font-size:9px;color:var(--muted);margin-top:1px;}
+.ar-phases{font-size:11px;color:var(--muted);line-height:1.7;margin-bottom:8px;}
+.ar-check-title{font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;}
+.ar-check ul{list-style:none;font-size:11px;color:var(--muted);}
+.ar-check li::before{content:"+ ";color:#1edb8b;}
+.assess-progress{margin-bottom:12px;}
+.ap-bar{height:3px;background:var(--surface2);border-radius:2px;overflow:hidden;margin-bottom:5px;}
+.ap-fill{height:100%;background:var(--ic);border-radius:2px;transition:width .3s;}
+.ap-label{font-size:10px;color:var(--muted);font-family:var(--mono);}
+.a-sub{font-size:11px;color:var(--muted);margin-bottom:8px;line-height:1.5;}
+.a-back{padding:6px 11px;background:transparent;border:1px solid var(--border);border-radius:5px;color:var(--muted);font-family:var(--font);font-size:11px;cursor:pointer;}
+.a-back:hover{color:var(--text);border-color:var(--muted);}
+
+/* ── CONFIG PANEL (right) ── */
+.cfg-section{margin-bottom:12px;}
+.cfg-label{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin-bottom:6px;}
+.cfg-pills{display:flex;flex-wrap:wrap;gap:4px;}
+.cfg-pill{padding:3px 9px;border-radius:4px;border:1px solid var(--border);font-size:11px;cursor:pointer;color:var(--muted);transition:all .15s;font-family:var(--mono);}
+.cfg-pill.sel{border-color:var(--ic);background:color-mix(in srgb,var(--ic) 12%,transparent);color:var(--text);}
+.cfg-input{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:5px;padding:6px 10px;color:var(--text);font-family:var(--font);font-size:11px;margin-bottom:6px;}
+.cfg-input:focus{outline:none;border-color:var(--ic);}
+.cfg-gen{padding:7px 14px;background:var(--ic);color:#fff;border:none;border-radius:5px;font-family:var(--font);font-size:12px;font-weight:600;cursor:pointer;width:100%;margin-bottom:8px;}
+.cfg-gen:disabled{opacity:.5;cursor:not-allowed;}
+#cfg-out{background:#080a0e;border:1px solid var(--border);border-radius:5px;padding:10px;font-family:var(--mono);font-size:10.5px;color:#1edb8b;white-space:pre-wrap;max-height:200px;overflow-y:auto;display:none;margin-bottom:6px;}
+.cfg-actions{display:flex;gap:6px;}
+.cfg-act{padding:5px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:4px;color:var(--text);font-size:11px;cursor:pointer;font-family:var(--font);}
+::-webkit-scrollbar{width:4px;height:4px;}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
+</style>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700&family=DM+Sans:wght@400;600&family=DM+Mono&display=swap" rel="stylesheet">
+</head>
+<body>
+
+<div id="topbar">
+  <span class="logo">Agentic BPC</span>
+  <span class="sep">|</span>
+  <div id="ind-tabs"></div>
+</div>
+
+<div id="main">
+
+  <!-- LEFT: process list -->
+  <div id="sidebar">
+    <div class="sidebar-label">Process Domains</div>
+    <div id="proc-list"></div>
+  </div>
+
+  <!-- CENTRE: simulation -->
+  <div id="centre">
+    <div id="centre-scroll">
+      <div id="proc-header"></div>
+      <div id="agent-arch"></div>
+      <div id="run-bar">
+        <button id="run-btn">Run Simulation</button>
+        <div id="prog-wrap"><div id="prog-bar"></div></div>
+        <span id="prog-label">Ready</span>
+      </div>
+      <div id="steps-grid"></div>
+    </div>
+    <div id="bottom">
+      <div class="bot-tabs">
+        <div class="bot-tab active" data-p="log">Agent Log</div>
+        <div class="bot-tab" data-p="out">Run Output</div>
+      </div>
+      <div class="bot-body" id="log-body">Awaiting simulation run...</div>
+      <div class="bot-body" id="out-body" style="display:none"></div>
+    </div>
+  </div>
+
+  <!-- RIGHT: assess + config -->
+  <div id="right">
+    <div id="right-tabs">
+      <div class="right-tab active" data-r="assess">Assessment</div>
+      <div class="right-tab" data-r="config">AI Foundry Config</div>
+    </div>
+    <div id="right-body">
+      <div id="assess-panel"></div>
+      <div id="config-panel" style="display:none"></div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const DATA = {"INDUSTRIES": [{"id": "mfg", "name": "Manufacturing", "icon": "🏭", "color": "#1edb8b", "tagline": "Industrial & production process automation"}, {"id": "retail", "name": "Retail & E-commerce", "icon": "🛍️", "color": "#4f8ef7", "tagline": "Omnichannel commerce & supply chain automation"}, {"id": "fs", "name": "Financial Services", "icon": "🏦", "color": "#b57af7", "tagline": "Regulated finance & compliance automation"}, {"id": "hc", "name": "Healthcare", "icon": "🏥", "color": "#f5a623", "tagline": "Clinical & operational health process automation"}, {"id": "ps", "name": "Professional Services", "icon": "💼", "color": "#5ce6c8", "tagline": "Consulting, advisory & project delivery automation"}, {"id": "gov", "name": "Public Sector", "icon": "🏛️", "color": "#f75c5c", "tagline": "Government & public service process automation"}], "PROCESSES": [{"id": "p65", "num": "65", "icon": "💰", "name": "Order to Cash", "desc": "Full cycle from sales order creation through invoicing, cash receipt, and AR reconciliation.", "agents": [{"icon": "🧠", "label": "Orchestrator", "role": "orchestrator"}, {"icon": "📋", "label": "Policy Agent", "role": "policy"}, {"icon": "📦", "label": "Order Agent", "role": "order"}, {"icon": "🚚", "label": "Fulfil Agent", "role": "fulfil"}, {"icon": "💳", "label": "AR Agent", "role": "ar"}, {"icon": "📊", "label": "Analytics", "role": "analytics"}], "industry": {"mfg": {"steps": [{"num": "65.05", "name": "Define Sales Policies", "agent": "Policy Agent", "icon": "📋", "output": "OEM/distributor credit terms validated. 3 accounts flagged over Net-60 limit. BOM-linked pricing rules active across 847 SKUs."}, {"num": "65.20", "name": "Manage Sales Orders", "agent": "Order Agent", "icon": "📦", "output": "124 production orders linked to customer orders. Make-to-order lead times validated. 6 orders flagged for scheduling conflict."}, {"num": "65.30", "name": "Manage Accounts Receivable", "agent": "AR Agent", "icon": "💳", "output": "Progress billing milestones processed for 8 long-cycle contracts. AR ledger reconciled. 2 deferred revenue entries posted."}, {"num": "65.50", "name": "Credit and Collections", "agent": "AR Agent", "icon": "🔎", "output": "4 overdue OEM accounts escalated. Automated dunning sent. 1 dispute raised on delivery milestone claim."}, {"num": "65.60", "name": "Analyze Sales Performance", "agent": "Analytics", "icon": "📊", "output": "Revenue: €6.2M. Distributor channel up 14%. DSO: 38 days. 3 customers at churn risk based on order frequency drop."}]}, "retail": {"steps": [{"num": "65.05", "name": "Define Sales Policies", "agent": "Policy Agent", "icon": "📋", "output": "Promotional pricing rules activated for Q3. 12 SKU exceptions approved. Returns policy updated for marketplace channels."}, {"num": "65.20", "name": "Manage Sales Orders", "agent": "Order Agent", "icon": "📦", "output": "4,820 omnichannel orders processed. 3 split-fulfilment orders routed across 2 DCs. 99.2% auto-confirmed."}, {"num": "65.30", "name": "Manage Accounts Receivable", "agent": "AR Agent", "icon": "💳", "output": "Retailer chargebacks: 14 processed, 3 disputed. Promotional deduction matching: 89% automated. Card settlement reconciled."}, {"num": "65.50", "name": "Credit and Collections", "agent": "AR Agent", "icon": "🔎", "output": "2 wholesale accounts overdue >45 days. Automated credit hold applied. EDI payment confirmation received for 18 accounts."}, {"num": "65.60", "name": "Analyze Sales Performance", "agent": "Analytics", "icon": "📊", "output": "Like-for-like sales +8%. Top category: Home & Garden. Basket size: €62 avg. 4 underperforming SKUs flagged for markdown."}]}, "fs": {"steps": [{"num": "65.05", "name": "Define Sales Policies", "agent": "Policy Agent", "icon": "📋", "output": "FCA suitability rules applied to all product sales. 2 client segments updated post-Consumer Duty review."}, {"num": "65.20", "name": "Manage Sales Orders", "agent": "Order Agent", "icon": "📦", "output": "Subscription renewals and fee schedule orders processed. IFRS 15 revenue recognition schedules updated for 34 contracts."}, {"num": "65.30", "name": "Manage Accounts Receivable", "agent": "AR Agent", "icon": "💳", "output": "Fee invoices matched to client portfolios. Retrocession payments reconciled. 1 disputed advisory fee escalated to compliance."}, {"num": "65.50", "name": "Credit and Collections", "agent": "AR Agent", "icon": "🔎", "output": "3 overdue client fee accounts. Relationship manager notified. FCA complaints register checked before dunning."}, {"num": "65.60", "name": "Analyze Sales Performance", "agent": "Analytics", "icon": "📊", "output": "AUM-linked revenue: £4.1M. Product mix: 62% advisory, 38% execution-only. Client retention: 94%."}]}, "hc": {"steps": [{"num": "65.05", "name": "Develop Revenue Policies", "agent": "Policy Agent", "icon": "📋", "output": "Payer contract matrix updated: 12 insurance plans and NHS block contracts validated. Pre-authorisation rules loaded for 340 procedure codes. Bad debt provision policy reviewed."}, {"num": "65.20", "name": "Manage Patient Billing", "agent": "Order Agent", "icon": "📦", "output": "Patient billing episodes raised post-discharge: 2,840 this month. ICD-10 and OPCS-4 codes validated. 94% auto-coded. 3 complex cases queued for clinical coder review."}, {"num": "65.30", "name": "Manage Accounts Receivable", "agent": "AR Agent", "icon": "💳", "output": "NHS SUS submission reconciled. Private insurer remittance matched: 87% automated. 14 claim denials queued for appeal - top reason: missing pre-auth (38%)."}, {"num": "65.50", "name": "Credit and Collections", "agent": "AR Agent", "icon": "🔎", "output": "4 self-pay accounts >60 days referred to collections. Hardship fund referrals: 2 patients. NHS payment within 30-day target: 94%."}, {"num": "65.60", "name": "Analyze Revenue Performance", "agent": "Analytics", "icon": "📊", "output": "Net patient revenue: £8.4M. Payer mix: NHS 72%, private 18%, self-pay 10%. Denial rate: 4.2%. Revenue leakage identified: £180K."}]}, "ps": {"steps": [{"num": "65.05", "name": "Define Sales Policies", "agent": "Policy Agent", "icon": "📋", "output": "Engagement profitability thresholds updated. T&M vs fixed-fee policy reviewed. 3 engagements flagged below 20% margin."}, {"num": "65.20", "name": "Manage Sales Orders", "agent": "Order Agent", "icon": "📦", "output": "SOW-based orders raised for 8 new engagements. Milestone billing schedules created. Resource rate card validated against contracts."}, {"num": "65.30", "name": "Manage Accounts Receivable", "agent": "AR Agent", "icon": "💳", "output": "Timesheet-to-invoice cycle: 94% on time. 3 milestone invoices pending client sign-off. WIP: £2.1M. Lockup: 42 days."}, {"num": "65.50", "name": "Credit and Collections", "agent": "AR Agent", "icon": "🔎", "output": "2 client accounts >30 days. Partner notified. 1 disputed expense claim under review. Collections rate: 97%."}, {"num": "65.60", "name": "Analyze Sales Performance", "agent": "Analytics", "icon": "📊", "output": "Revenue: £3.8M. Realisation: 91%. Write-offs: £42K. Top service line: Technology Advisory (+22% YoY)."}]}, "gov": {"steps": [{"num": "65.05", "name": "Define Sales Policies", "agent": "Policy Agent", "icon": "📋", "output": "Framework agreement pricing validated. Delegation of authority matrix updated. Budget codes linked to 34 active service agreements."}, {"num": "65.20", "name": "Manage Sales Orders", "agent": "Order Agent", "icon": "📦", "output": "Inter-departmental recharges processed. 98% of orders within approved budget lines. 3 urgent orders raised under emergency procurement."}, {"num": "65.30", "name": "Manage Accounts Receivable", "agent": "AR Agent", "icon": "💳", "output": "Grant billing submissions processed for 6 funded programmes. Central government receivables: £1.2M. Audit trail generated for NAO."}, {"num": "65.50", "name": "Credit and Collections", "agent": "AR Agent", "icon": "🔎", "output": "2 local authority payments overdue. Prompt Payment Code compliance tracked. Statutory interest calculated on 1 late payment."}, {"num": "65.60", "name": "Analyze Performance", "agent": "Analytics", "icon": "📊", "output": "Budget utilisation: 74% YTD. Underspend forecast: £340K. Recharge accuracy: 99.1%. Parliamentary reporting pack prepared."}]}}}, {"id": "p75", "num": "75", "icon": "🛒", "name": "Source to Pay", "desc": "End-to-end procurement from sourcing strategy through supplier management, purchasing, and AP close.", "agents": [{"icon": "🧠", "label": "Orchestrator", "role": "orchestrator"}, {"icon": "📐", "label": "Strategy Agent", "role": "strategy"}, {"icon": "🤝", "label": "Supplier Agent", "role": "supplier"}, {"icon": "📑", "label": "Contract Agent", "role": "contract"}, {"icon": "💸", "label": "AP Agent", "role": "ap"}, {"icon": "📊", "label": "Analytics", "role": "analytics"}], "industry": {"mfg": {"steps": [{"num": "75.10", "name": "Develop Procurement Strategy", "agent": "Strategy Agent", "icon": "📐", "output": "Direct materials spend: €12.4M. Dual-source strategy activated for 4 critical components after supply risk review."}, {"num": "75.30", "name": "Manage Supplier Relationships", "agent": "Supplier Agent", "icon": "🤝", "output": "IATF/ISO scorecards updated. 3 suppliers below quality threshold. PPAP approval tracked for 7 new component introductions."}, {"num": "75.35", "name": "Source and Contract", "agent": "Contract Agent", "icon": "📑", "output": "2 blanket orders renewed. TCO analysis completed for steel sourcing. New supplier contract saves €180K/yr."}, {"num": "75.40", "name": "Procure Goods and Services", "agent": "AP Agent", "icon": "🛒", "output": "847 POs auto-generated from MRP signals. GR/IR reconciliation: 96% auto-matched. 3 goods receipt discrepancies flagged."}, {"num": "75.50", "name": "Manage Accounts Payable", "agent": "AP Agent", "icon": "💸", "output": "AP run: €2.8M. 14 early payment discounts captured (€22K saved). 2 duplicate invoices blocked. DPO: 45 days."}]}, "retail": {"steps": [{"num": "75.10", "name": "Develop Procurement Strategy", "agent": "Strategy Agent", "icon": "📐", "output": "Seasonal buying budget: €8.2M open-to-buy. 6 new supplier categories identified. Markdown risk model updated."}, {"num": "75.30", "name": "Manage Supplier Relationships", "agent": "Supplier Agent", "icon": "🤝", "output": "120 supplier scorecards updated. EDI compliance: 94%. 8 vendors flagged for delivery performance."}, {"num": "75.35", "name": "Source and Contract", "agent": "Contract Agent", "icon": "📑", "output": "Spring/Summer range: 340 new lines confirmed. Own-brand contract negotiated - 12% cost reduction."}, {"num": "75.40", "name": "Procure Goods and Services", "agent": "AP Agent", "icon": "🛒", "output": "1,240 POs raised for season. 98% confirmed by suppliers. 4 late confirmations escalated."}, {"num": "75.50", "name": "Manage Accounts Payable", "agent": "AP Agent", "icon": "💸", "output": "AP run: €4.1M. Debit memos for returns: 23 processed. Promotional allowances reconciled."}]}, "fs": {"steps": [{"num": "75.10", "name": "Develop Procurement Strategy", "agent": "Strategy Agent", "icon": "📐", "output": "Third-party spend: £6.8M. TPRM risk assessment completed for 34 critical vendors. Cost reduction target: 8%."}, {"num": "75.30", "name": "Manage Supplier Relationships", "agent": "Supplier Agent", "icon": "🤝", "output": "FCA outsourcing register updated. 2 Critical Third Parties flagged for enhanced monitoring."}, {"num": "75.35", "name": "Source and Contract", "agent": "Contract Agent", "icon": "📑", "output": "GDPR data processing agreements validated for all new vendors. 3 contracts with regulatory clauses auto-generated. Savings: £240K."}, {"num": "75.40", "name": "Procure Goods and Services", "agent": "AP Agent", "icon": "🛒", "output": "IT and professional services POs raised. Policy compliance: 97%. 2 maverick spend instances blocked."}, {"num": "75.50", "name": "Manage Accounts Payable", "agent": "AP Agent", "icon": "💸", "output": "AP run: £1.9M. Retrocession payments processed. Regulatory fee invoices matched."}]}, "hc": {"steps": [{"num": "75.10", "name": "Develop Clinical Procurement Strategy", "agent": "Strategy Agent", "icon": "📐", "output": "Clinical supplies spend: £14.2M. NHS Supply Chain catalogue utilisation: 84%. 6 high-spend categories identified for clinical procurement group buying."}, {"num": "75.30", "name": "Manage Clinical Supplier Relationships", "agent": "Supplier Agent", "icon": "🤝", "output": "GMP and CE/MDR certification tracked for 48 medical device suppliers. 1 MHRA recall alert received - 3 affected lots quarantined. Sunshine Act HCP spend: £42K logged."}, {"num": "75.35", "name": "Source and Contract Clinical Supplies", "agent": "Contract Agent", "icon": "📑", "output": "3 clinical equipment tenders evaluated via NHS frameworks (SBS, SCCL). MEAT scoring applied. Preferred supplier for infusion pumps - £180K annual saving."}, {"num": "75.40", "name": "Procure Clinical Goods", "agent": "AP Agent", "icon": "🛒", "output": "Formulary-controlled orders: 2,840 lines processed. 4 non-formulary requests escalated to P&T committee. CD purchase orders: dual-authorisation completed."}, {"num": "75.50", "name": "Manage Accounts Payable", "agent": "AP Agent", "icon": "💸", "output": "AP run: £3.2M. NHS Supply Chain invoices: 99% matched. 3 pricing discrepancies disputed. Prompt Payment: 94% within 30 days."}]}, "ps": {"steps": [{"num": "75.10", "name": "Develop Procurement Strategy", "agent": "Strategy Agent", "icon": "📐", "output": "Subcontractor and freelance spend: £2.4M. IR35 compliance status reviewed for 28 contractors. Rate benchmarking completed."}, {"num": "75.35", "name": "Source and Contract", "agent": "Contract Agent", "icon": "📑", "output": "Back-to-back subcontract terms aligned to client MSAs. 3 specialist subcontractors onboarded. Pass-through cost markup validated."}, {"num": "75.40", "name": "Procure Goods and Services", "agent": "AP Agent", "icon": "🛒", "output": "84 subcontractor POs raised. Project code allocation: 100%. Expense claims validated against project budgets."}, {"num": "75.50", "name": "Manage Accounts Payable", "agent": "AP Agent", "icon": "💸", "output": "AP run: £680K. Subcontractor invoices matched to approved timesheets. 2 disputed claims escalated."}, {"num": "75.80", "name": "Analyze Procurement", "agent": "Analytics", "icon": "📊", "output": "Subcontractor margin contribution: 18%. On-time delivery: 96%. 3 underperforming vendors flagged."}]}, "gov": {"steps": [{"num": "75.10", "name": "Develop Procurement Strategy", "agent": "Strategy Agent", "icon": "📐", "output": "Procurement pipeline published on Contracts Finder. Framework utilisation target: 75%. Commercial strategy approved by CPO."}, {"num": "75.30", "name": "Manage Supplier Relationships", "agent": "Supplier Agent", "icon": "🤝", "output": "Prompt Payment Code compliance: 98%. SME spend: 34% of total. Modern Slavery Act due diligence completed."}, {"num": "75.35", "name": "Source and Contract", "agent": "Contract Agent", "icon": "📑", "output": "3 Find a Tender notices published. MEAT evaluation completed. Contract award notices published within 30-day requirement."}, {"num": "75.40", "name": "Procure Goods and Services", "agent": "AP Agent", "icon": "🛒", "output": "Requisitions processed within delegated authority. 2 approvals escalated above threshold. Purchase cards reconciled: 340 transactions."}, {"num": "75.50", "name": "Manage Accounts Payable", "agent": "AP Agent", "icon": "💸", "output": "AP run: £4.8M. 98% of invoices paid within 30 days. Central government transparency data updated."}]}}}, {"id": "p55", "num": "55", "icon": "👥", "name": "Hire to Retire", "desc": "Full employee lifecycle from talent acquisition through performance, compensation, and offboarding.", "agents": [{"icon": "🧠", "label": "Orchestrator", "role": "orchestrator"}, {"icon": "🎯", "label": "Talent Agent", "role": "talent"}, {"icon": "📋", "label": "Compliance Agent", "role": "compliance"}, {"icon": "📈", "label": "Performance Agent", "role": "performance"}, {"icon": "⏱️", "label": "Time Agent", "role": "time"}, {"icon": "💰", "label": "Comp Agent", "role": "comp"}], "industry": {"mfg": {"steps": [{"num": "55.05", "name": "Develop People Strategy", "agent": "Talent Agent", "icon": "🎯", "output": "Shift worker headcount plan: 42 open roles for Q3. 8 agency workers converted to permanent. Skills gap: CNC operators critical."}, {"num": "55.10", "name": "Recruit and Onboard Talent", "agent": "Talent Agent", "icon": "🔍", "output": "320 applications screened. 42 offers extended. Bulk onboarding: health & safety induction, PPE issue, machinery licence checks."}, {"num": "55.30", "name": "Manage Workplace Compliance", "agent": "Compliance Agent", "icon": "📋", "output": "COSHH training: 98% complete. Machinery operator licences: 4 renewals due. RIDDOR incident report filed."}, {"num": "55.50", "name": "Manage Time and Attendance", "agent": "Time Agent", "icon": "⏱️", "output": "Shift patterns validated for 840 employees. OT anomalies: 6 flagged. Union agreement compliance checked."}, {"num": "55.70", "name": "Compensation and Benefits", "agent": "Comp Agent", "icon": "💰", "output": "Payroll: 840 employees. Shift premiums applied. 3 pay anomalies resolved. Skills-based pay progression updated for 18 employees."}]}, "retail": {"steps": [{"num": "55.05", "name": "Develop People Strategy", "agent": "Talent Agent", "icon": "🎯", "output": "Christmas seasonal hiring plan: 280 temporary roles. Store labour cost target: 14% of sales."}, {"num": "55.10", "name": "Recruit and Onboard Talent", "agent": "Talent Agent", "icon": "🔍", "output": "1,240 seasonal applications screened. 280 bulk offers sent. Food hygiene cert tracked, till training scheduled."}, {"num": "55.30", "name": "Manage Workplace Compliance", "agent": "Compliance Agent", "icon": "📋", "output": "Food hygiene certifications: 97% valid. Manual handling training: 3 overdue. Right-to-work checks: 100%."}, {"num": "55.50", "name": "Manage Time and Attendance", "agent": "Time Agent", "icon": "⏱️", "output": "Zero-hours rota compliance checked. Bank holiday premium pay applied. 4 missed clock-ins investigated."}, {"num": "55.70", "name": "Compensation and Benefits", "agent": "Comp Agent", "icon": "💰", "output": "Payroll: 1,840 employees including 280 seasonal. NMW compliance verified for all under-25 staff."}]}, "fs": {"steps": [{"num": "55.05", "name": "Develop People Strategy", "agent": "Talent Agent", "icon": "🎯", "output": "Certified individual headcount plan updated. 6 FCA-regulated roles open. Succession plan reviewed for Senior Managers (SMCR)."}, {"num": "55.10", "name": "Recruit and Onboard Talent", "agent": "Talent Agent", "icon": "🔍", "output": "Regulatory references requested for 8 candidates. Criminal record checks completed. FCA fitness and propriety assessments initiated."}, {"num": "55.30", "name": "Manage Workplace Compliance", "agent": "Compliance Agent", "icon": "📋", "output": "FCA licence renewals: 3 due in 60 days. SMCR accountability map updated. Mandatory compliance training: 99% complete."}, {"num": "55.40", "name": "Performance and Growth", "agent": "Performance Agent", "icon": "📈", "output": "Q2 reviews: 98% complete. 4 certified individuals flagged for performance improvement. Bonus deferral schedules updated."}, {"num": "55.70", "name": "Compensation and Benefits", "agent": "Comp Agent", "icon": "💰", "output": "Variable pay deferral schedules applied. Malus/clawback conditions checked. MRT remuneration report prepared for PRA submission."}]}, "hc": {"steps": [{"num": "55.05", "name": "Develop Clinical Workforce Strategy", "agent": "Talent Agent", "icon": "🎯", "output": "Clinical workforce plan: 18 RN vacancies, 4 consultant posts, 12 AHP roles. Bank staff pool: 240 active. Agency spend vs cap: 2 wards above threshold. Rota modelling updated for winter pressures."}, {"num": "55.10", "name": "Recruit and Onboard Clinical Staff", "agent": "Talent Agent", "icon": "🔍", "output": "DBS enhanced checks: 24 new starters initiated. NMC/GMC/HCPC registration verified. Occupational health clearance: 100%. Mandatory induction: e-learning assigned on day 1."}, {"num": "55.30", "name": "Manage Clinical Compliance", "agent": "Compliance Agent", "icon": "📋", "output": "Clinical revalidation: 3 doctors due within 30 days - appraisers assigned. Mandatory training: 96% complete. Safeguarding Level 2: 4 overdue. CQC evidence tracker updated."}, {"num": "55.50", "name": "Manage Time and Attendance", "agent": "Time Agent", "icon": "⏱️", "output": "Junior doctor EWTD: 2 trainees flagged at 47.8 hours - rotas adjusted. Bank shift matching: 140 gaps filled. On-call claims validated. Agency timesheets: 98% submitted on time."}, {"num": "55.70", "name": "Compensation and Benefits", "agent": "Comp Agent", "icon": "💰", "output": "Payroll: 2,840 staff. Agenda for Change banding applied. Unsocial hours premiums (Annex 3) validated. 4 AFC banding appeals in progress. NHS Pension Scheme contributions validated."}]}, "ps": {"steps": [{"num": "55.05", "name": "Develop People Strategy", "agent": "Talent Agent", "icon": "🎯", "output": "Utilisation target: 82%. 6 open consultant roles. Skills matrix updated for AI/data competencies. 3 internal mobility moves planned."}, {"num": "55.10", "name": "Recruit and Onboard Talent", "agent": "Talent Agent", "icon": "🔍", "output": "48 applications screened against skills matrix. 6 offers extended. Client security clearance initiated for 2 government-facing roles."}, {"num": "55.40", "name": "Performance and Growth", "agent": "Performance Agent", "icon": "📈", "output": "Billability review: 14 consultants below 75% target. Development plans generated. 3 promotions recommended based on performance data."}, {"num": "55.50", "name": "Manage Time and Attendance", "agent": "Time Agent", "icon": "⏱️", "output": "Timesheet compliance: 99.4%. Project time allocation validated against SOWs. 2 misallocation errors corrected before billing run."}, {"num": "55.70", "name": "Compensation and Benefits", "agent": "Comp Agent", "icon": "💰", "output": "Payroll: 340 staff. Utilisation-linked bonus accrual updated. Market benchmarking: 3 roles flagged below median."}]}, "gov": {"steps": [{"num": "55.05", "name": "Develop People Strategy", "agent": "Talent Agent", "icon": "🎯", "output": "Civil Service vacancy pipeline: 28 roles. Fast Stream intake planned. Diversity and inclusion targets reviewed."}, {"num": "55.10", "name": "Recruit and Onboard Talent", "agent": "Talent Agent", "icon": "🔍", "output": "Civil Service Commission principles applied. Anonymised shortlisting completed. BPSS security checks initiated for 14 new starters."}, {"num": "55.30", "name": "Manage Workplace Compliance", "agent": "Compliance Agent", "icon": "📋", "output": "Security clearance renewals: 4 due. DSE assessments: 98% complete. Whistleblowing policy acknowledgement: 100%."}, {"num": "55.40", "name": "Performance and Growth", "agent": "Performance Agent", "icon": "📈", "output": "Annual appraisal cycle: 94% complete. Capability framework assessments updated. 2 underperformance cases initiated with HR."}, {"num": "55.70", "name": "Compensation and Benefits", "agent": "Comp Agent", "icon": "💰", "output": "Pay spine progression applied. Pay Review Body recommendations implemented. Pension contribution rates validated against MyCSP."}]}}}, {"id": "p90", "num": "90", "icon": "📒", "name": "Record to Report", "desc": "Financial transaction recording, period-end close, management reporting, and performance analysis.", "agents": [{"icon": "🧠", "label": "Orchestrator", "role": "orchestrator"}, {"icon": "📜", "label": "Policy Agent", "role": "policy"}, {"icon": "💵", "label": "Cash Agent", "role": "cash"}, {"icon": "📒", "label": "GL Agent", "role": "gl"}, {"icon": "🔒", "label": "Close Agent", "role": "close"}, {"icon": "📊", "label": "Report Agent", "role": "report"}], "industry": {"mfg": {"steps": [{"num": "90.10", "name": "Define Accounting Policies", "agent": "Policy Agent", "icon": "📜", "output": "Standard costing updated for raw material price changes. IFRS 16 lease accounting confirmed for 12 production facilities."}, {"num": "90.25", "name": "Manage Cash", "agent": "Cash Agent", "icon": "💵", "output": "4 bank accounts reconciled. Production capex payments tracked. Cash position: €8.4M. Foreign currency revaluation posted."}, {"num": "90.50", "name": "Record Transactions", "agent": "GL Agent", "icon": "📒", "output": "Production order settlement: 340 variance postings. Scrap and rework costs posted. Intercompany recharges reconciled across 3 plants."}, {"num": "90.60", "name": "Close Financial Periods", "agent": "Close Agent", "icon": "🔒", "output": "Month-end close: Day 3. Depreciation run: €420K posted. Inventory revaluation done. COGS adjusted for WIP movement."}, {"num": "90.70", "name": "Analyze Financial Performance", "agent": "Report Agent", "icon": "📊", "output": "Gross margin: 34.2%. Variable cost variance: €180K adverse. OEE impact on absorption flagged. Board pack drafted for CFO."}]}, "retail": {"steps": [{"num": "90.10", "name": "Define Accounting Policies", "agent": "Policy Agent", "icon": "📜", "output": "Markdown provision policy updated. Shrinkage rate revised to 0.8%. IFRS 16 applied to 180 store leases."}, {"num": "90.25", "name": "Manage Cash", "agent": "Cash Agent", "icon": "💵", "output": "POS daily reconciliation: 340 locations. Card payment processor feeds: 99.4% auto-matched. Petty cash variances: 3 flagged."}, {"num": "90.50", "name": "Record Transactions", "agent": "GL Agent", "icon": "📒", "output": "1.2M daily POS transactions classified. Promotional accruals posted. Gift card liability updated. Stock adjustment journals posted."}, {"num": "90.60", "name": "Close Financial Periods", "agent": "Close Agent", "icon": "🔒", "output": "Week-end close: 6 hours. Markdowns posted. Obsolescence provision reviewed. 3 stores with outstanding reconciliations flagged."}, {"num": "90.70", "name": "Analyze Financial Performance", "agent": "Report Agent", "icon": "📊", "output": "Gross margin: 48.2%. Like-for-like +6%. Promotional ROI calculated per mechanic. Category margin mix report prepared."}]}, "fs": {"steps": [{"num": "90.10", "name": "Define Accounting Policies", "agent": "Policy Agent", "icon": "📜", "output": "IFRS 9 ECL model parameters updated. IFRS 17 insurance contract measurement confirmed. Hedge accounting documentation reviewed."}, {"num": "90.25", "name": "Manage Cash", "agent": "Cash Agent", "icon": "💵", "output": "Nostro reconciliation: 8 correspondent accounts. FX position revalued. LCR: 142%. Cash collateral postings confirmed."}, {"num": "90.50", "name": "Record Transactions", "agent": "GL Agent", "icon": "📒", "output": "Mark-to-market revaluations posted daily. Amortised cost calculations updated. IFRS 9 staging reviewed. Day 1 P&L on new instruments posted."}, {"num": "90.60", "name": "Close Financial Periods", "agent": "Close Agent", "icon": "🔒", "output": "Month-end: Day 2. COREP return drafted. FINREP pack prepared. Prudential filters applied. Regulatory submission prepared."}, {"num": "90.70", "name": "Analyze Financial Performance", "agent": "Report Agent", "icon": "📊", "output": "NIM: 2.14%. Cost-income ratio: 58%. RoRWA: 12.3%. Capital ratio: 15.8% (min 10.5%). Investor relations pack drafted."}]}, "hc": {"steps": [{"num": "90.10", "name": "Define NHS Accounting Policies", "agent": "Policy Agent", "icon": "📜", "output": "NHS Accounting Manual (2025/26) updates applied. Donated asset accounting policy confirmed for 3 charitable funds. IFRS 16 applied to 12 equipment leases. Resource accounting rules reviewed."}, {"num": "90.25", "name": "Manage NHS Cash", "agent": "Cash Agent", "icon": "💵", "output": "NHS PDC drawdown reconciled: £4.2M received. Charitable funds accounts reconciled. Cash position: £12.4M. BACS payroll confirmed. Working capital: 18 days cash equivalent."}, {"num": "90.50", "name": "Record Clinical Transactions", "agent": "GL Agent", "icon": "📒", "output": "Patient income accruals posted: £8.4M. Clinical coding adjustment: 3 HRG grouping errors corrected post-audit. Rechargeable expenses allocated to 48 departments. Research grant expenditure ring-fenced."}, {"num": "90.60", "name": "Close Financial Periods", "agent": "Close Agent", "icon": "🔒", "output": "Month-end: Day 4. MRET submitted to NHS England. Activity data reconciled to finance. Capital charge posted. Charitable funds consolidated. 2 prior-period adjustments approved."}, {"num": "90.70", "name": "Analyze Financial Performance", "agent": "Report Agent", "icon": "📊", "output": "I&E: £2.4M deficit vs £1.8M plan. CIP tracker: 68% delivered. RTT financial impact modelled. NHSI financial return prepared. Agency spend premium: £840K YTD - escalated to board."}]}, "ps": {"steps": [{"num": "90.10", "name": "Define Accounting Policies", "agent": "Policy Agent", "icon": "📜", "output": "IFRS 15 percentage-of-completion methodology confirmed for fixed-fee engagements. Partner draw accounting policy updated."}, {"num": "90.25", "name": "Manage Cash", "agent": "Cash Agent", "icon": "💵", "output": "Client retainer bank accounts reconciled. Partner capital account movements posted. Cash position: £4.8M."}, {"num": "90.50", "name": "Record Transactions", "agent": "GL Agent", "icon": "📒", "output": "WIP recognised on 34 active engagements. Disbursement accruals posted. Write-offs approved: £38K."}, {"num": "90.60", "name": "Close Financial Periods", "agent": "Close Agent", "icon": "🔒", "output": "Month-end: Day 2. Partner allocation model run. Profit share calculated. Lockup reconciled: WIP £2.1M + Debtors £1.8M."}, {"num": "90.70", "name": "Analyze Financial Performance", "agent": "Report Agent", "icon": "📊", "output": "Revenue: £3.4M. Margin: 28%. Realisation: 91%. Lockup: 41 days. Top 5 clients: 62% of revenue."}]}, "gov": {"steps": [{"num": "90.10", "name": "Define Accounting Policies", "agent": "Policy Agent", "icon": "📜", "output": "FReM updates applied for 2025/26. Resource accounting rules confirmed. WGA consolidation scope updated."}, {"num": "90.25", "name": "Manage Cash", "agent": "Cash Agent", "icon": "💵", "output": "Exchequer receipts reconciled. Consolidated Fund receipts posted. PDC payments confirmed. Bank reconciliation with BACS: 100% matched."}, {"num": "90.50", "name": "Record Transactions", "agent": "GL Agent", "icon": "📒", "output": "DEL/AME expenditure posted by Budget line. Grant-in-aid disbursements posted. Inter-departmental recharges reconciled."}, {"num": "90.60", "name": "Close Financial Periods", "agent": "Close Agent", "icon": "🔒", "output": "Month-end: Day 3. Outturn figures prepared for HMT. 2 prior period adjustments approved. Audit trail for NAO complete."}, {"num": "90.70", "name": "Analyze Financial Performance", "agent": "Report Agent", "icon": "📊", "output": "DEL spend: 81% of annual budget at month 9. AME forecast updated. Underspend: £42M flagged for Supplementary Estimates."}]}}}, {"id": "p80", "num": "80", "icon": "🏗️", "name": "Project to Profit", "desc": "Project contracts, resource planning, delivery tracking, financials, and profitability analysis.", "agents": [{"icon": "🧠", "label": "Orchestrator", "role": "orchestrator"}, {"icon": "📑", "label": "Contract Agent", "role": "contract"}, {"icon": "🗓️", "label": "Planning Agent", "role": "planning"}, {"icon": "🏗️", "label": "Delivery Agent", "role": "delivery"}, {"icon": "💰", "label": "Finance Agent", "role": "finance"}, {"icon": "📊", "label": "Analytics", "role": "analytics"}], "industry": {"mfg": {"steps": [{"num": "80.20", "name": "Manage Project Contracts", "agent": "Contract Agent", "icon": "📑", "output": "Capital project contracts: 8 active. Milestone payments tracked. 2 change orders processed with full cost impact analysis."}, {"num": "80.30", "name": "Plan Projects", "agent": "Planning Agent", "icon": "🗓️", "output": "Engineering resource plan updated. Critical path: commissioning phase at risk. 3 workstreams replanned."}, {"num": "80.40", "name": "Manage Project Delivery", "agent": "Delivery Agent", "icon": "🏗️", "output": "EVM: SPI 0.91, CPI 1.04. 1 project behind on timeline. Mitigation plan auto-generated. Plant installation milestone on track."}, {"num": "80.50", "name": "Manage Project Financials", "agent": "Finance Agent", "icon": "💰", "output": "Capex vs budget: 94% utilised. EAC updated for 3 projects. Capitalisation readiness: 2 assets ready for fixed asset transfer."}, {"num": "80.60", "name": "Analyze Performance", "agent": "Analytics", "icon": "📊", "output": "Portfolio capex: €18.4M. On-budget projects: 6/8. Average ROI forecast: 14%. 1 project below hurdle rate - review triggered."}]}, "retail": {"steps": [{"num": "80.20", "name": "Manage Project Contracts", "agent": "Contract Agent", "icon": "📑", "output": "Store fit-out contracts: 12 active. Contractor milestone payments: 8 approved. 3 variation orders under review (£180K total)."}, {"num": "80.30", "name": "Plan Projects", "agent": "Planning Agent", "icon": "🗓️", "output": "Store opening programme: 6 openings in Q3. Fit-out, VM, IT, HR onboarding workstreams tracked."}, {"num": "80.40", "name": "Manage Project Delivery", "agent": "Delivery Agent", "icon": "🏗️", "output": "4 stores on track. 2 delayed by planning permission. EVM: SPI 0.88. Escalation report sent to property director."}, {"num": "80.50", "name": "Manage Project Financials", "agent": "Finance Agent", "icon": "💰", "output": "Capex: £8.2M YTD. Store investment payback model updated. 3 stores capitalised this month."}, {"num": "80.60", "name": "Analyze Performance", "agent": "Analytics", "icon": "📊", "output": "New store IRR avg: 18%. Best performer: Glasgow (Year 1 sales 140% of plan). Payback period: 3.2 years average."}]}, "fs": {"steps": [{"num": "80.20", "name": "Manage Project Contracts", "agent": "Contract Agent", "icon": "📑", "output": "Regulatory change programme: FCA deadline tracking active. 6 workstreams. MO milestone confirmed for Consumer Duty implementation."}, {"num": "80.30", "name": "Plan Projects", "agent": "Planning Agent", "icon": "🗓️", "output": "IT transformation: 14 streams. RAID log updated. 3 dependencies flagged. Regulatory go-live: 12 weeks."}, {"num": "80.40", "name": "Manage Project Delivery", "agent": "Delivery Agent", "icon": "🏗️", "output": "EVM: SPI 0.94, CPI 0.97. 2 streams at risk. FCA submission readiness: 78%."}, {"num": "80.50", "name": "Manage Project Financials", "agent": "Finance Agent", "icon": "💰", "output": "Programme spend: £12.4M YTD. Benefit realisation: £3.2M tracked. Cost vs business case: 104%."}, {"num": "80.60", "name": "Analyze Performance", "agent": "Analytics", "icon": "📊", "output": "Portfolio health: 3 green, 2 amber, 1 red. Benefits dashboard prepared for ExCo review."}]}, "hc": {"steps": [{"num": "80.20", "name": "Manage NHS Project Contracts", "agent": "Contract Agent", "icon": "📑", "output": "NHS capital programme: PFI contract monitoring active. 3 milestone certificates issued. OJEU contract award notices published within 30-day requirement."}, {"num": "80.30", "name": "Plan Clinical Projects", "agent": "Planning Agent", "icon": "🗓️", "output": "EPR implementation: go-live readiness 74%. DCB0160 clinical safety assessment in progress. Training plan: 2,400 users across 6 sites. IT infrastructure readiness: 88%."}, {"num": "80.40", "name": "Manage Project Delivery", "agent": "Delivery Agent", "icon": "🏗️", "output": "Capital programme EVM: SPI 0.89. 1 ward closure extended by 2 weeks - infection control requirement. NHSI monthly data return updated. CQC notification submitted."}, {"num": "80.50", "name": "Manage Project Financials", "agent": "Finance Agent", "icon": "💰", "output": "PDC drawdown: £4.2M this quarter. Business case benefits: 3 metrics measurable. Capital vs revenue split confirmed. Outturn: on approved budget. Treasury approval: confirmed."}, {"num": "80.60", "name": "Analyze Performance", "agent": "Analytics", "icon": "📊", "output": "Capital programme: 68% of annual allocation spent at month 9. 3 schemes at risk of slippage. CDEL vs RDEL boundary checked. Annual report capital narrative drafted for board."}]}, "ps": {"steps": [{"num": "80.20", "name": "Manage Project Contracts", "agent": "Contract Agent", "icon": "📑", "output": "34 active engagements. Change requests: 6 processed. Milestone billing triggered for 4 fixed-fee projects. Revenue recognised: £840K."}, {"num": "80.30", "name": "Plan Projects", "agent": "Planning Agent", "icon": "🗓️", "output": "Consultant allocation optimised across 34 projects. 3 resource conflicts resolved. 2 new projects staffed from internal pool."}, {"num": "80.40", "name": "Manage Project Delivery", "agent": "Delivery Agent", "icon": "🏗️", "output": "EVM: SPI 0.96, CPI 1.03. 2 engagements flagged for scope creep. Status reports auto-drafted for PM review."}, {"num": "80.50", "name": "Manage Project Financials", "agent": "Finance Agent", "icon": "💰", "output": "WIP: £2.8M. Margin: 29% portfolio avg. 3 engagements below 20% threshold. Monthly billing: £1.4M."}, {"num": "80.60", "name": "Analyze Performance", "agent": "Analytics", "icon": "📊", "output": "Win rate: 34%. Avg engagement size: £180K. Realisation: 91%. Client NPS: 68. Top service: Digital Transformation."}]}, "gov": {"steps": [{"num": "80.20", "name": "Manage Project Contracts", "agent": "Contract Agent", "icon": "📑", "output": "Major Projects Portfolio: 8 projects. IPA gateway reviews scheduled. GovS002 project controls standards applied."}, {"num": "80.30", "name": "Plan Projects", "agent": "Planning Agent", "icon": "🗓️", "output": "Integrated programme plan updated. Cross-departmental dependencies mapped. Green Book appraisal refreshed for 2 projects."}, {"num": "80.40", "name": "Manage Project Delivery", "agent": "Delivery Agent", "icon": "🏗️", "output": "MPP status returns submitted. 2 projects Amber/Red. IPA SRO letters drafted. Parliamentary accountability review prepared."}, {"num": "80.50", "name": "Manage Project Financials", "agent": "Finance Agent", "icon": "💰", "output": "CDEL spend: £42M YTD. Whole Life Cost updated. Benefits realisation: 3 metrics on track. HMT spending approval: confirmed."}, {"num": "80.60", "name": "Analyze Performance", "agent": "Analytics", "icon": "📊", "output": "Portfolio: 5 green, 2 amber, 1 red. Benefits delivered: £8.4M. VfM assessment completed. NAO audit readiness: 88%."}]}}}, {"id": "p10", "num": "10", "icon": "🏢", "name": "Acquire to Dispose", "desc": "Fixed asset lifecycle from strategy and acquisition through maintenance, management, and disposal.", "agents": [{"icon": "🧠", "label": "Orchestrator", "role": "orchestrator"}, {"icon": "📐", "label": "Strategy Agent", "role": "strategy"}, {"icon": "🏢", "label": "Asset Agent", "role": "asset"}, {"icon": "🔧", "label": "Maint. Agent", "role": "maint"}, {"icon": "💸", "label": "Finance Agent", "role": "finance"}, {"icon": "📊", "label": "Analytics", "role": "analytics"}], "industry": {"mfg": {"steps": [{"num": "10.05", "name": "Define Asset Strategy", "agent": "Strategy Agent", "icon": "📐", "output": "Production asset register: 2,340 items. Dual-source strategy for 4 critical machines. Replacement cycle modelled for press lines."}, {"num": "10.20", "name": "Acquire Assets", "agent": "Asset Agent", "icon": "🏢", "output": "3 capital equipment orders processed. PPAP documentation linked. Asset records created. Commissioning checklists issued."}, {"num": "10.40", "name": "Manage Active Assets", "agent": "Maint. Agent", "icon": "🔧", "output": "IoT/OEE alerts: 4 machines require servicing within 14 days. Spare parts pre-ordered. MTBF updated across 240 assets."}, {"num": "10.50", "name": "Perform Asset Maintenance", "agent": "Maint. Agent", "icon": "⚙️", "output": "18 planned maintenance orders completed. Breakdown response: avg 2.1 hours. 3 machines returned to service."}, {"num": "10.70", "name": "Analyze Assets", "agent": "Analytics", "icon": "📊", "output": "OEE avg: 79%. Asset utilisation: 82%. 6 underperforming assets flagged. Disposal proceeds forecast: €340K."}]}, "retail": {"steps": [{"num": "10.05", "name": "Define Asset Strategy", "agent": "Strategy Agent", "icon": "📐", "output": "Store estate assets: 8,400 items across 340 locations. Refrigeration replacement programme planned. IT refresh cycle: 3 years."}, {"num": "10.20", "name": "Acquire Assets", "agent": "Asset Agent", "icon": "🏢", "output": "12 store fit-out capital projects capitalised. Assets tagged and registered. Lease modifications: 8 stores under IFRS 16."}, {"num": "10.40", "name": "Manage Active Assets", "agent": "Maint. Agent", "icon": "🔧", "output": "Refrigeration service alerts: 14 units. HVAC PPM schedule updated. 3 EPoS terminals flagged for replacement."}, {"num": "10.50", "name": "Perform Asset Maintenance", "agent": "Maint. Agent", "icon": "⚙️", "output": "Contractor work orders: 42 completed. Reactive maintenance: 18 calls. Statutory compliance tests: 100% up to date."}, {"num": "10.70", "name": "Analyze Assets", "agent": "Analytics", "icon": "📊", "output": "Asset utilisation: 74%. 28 assets recommended for disposal. NBV: £42M. Lease renewal decisions: 6 stores flagged."}]}, "fs": {"steps": [{"num": "10.05", "name": "Define Asset Strategy", "agent": "Strategy Agent", "icon": "📐", "output": "Office estate strategy: 4 locations under review. Hybrid working: 35% space reduction modelled. Technology refresh planned."}, {"num": "10.20", "name": "Acquire Assets", "agent": "Asset Agent", "icon": "🏢", "output": "Right-of-use assets: 6 lease modifications under IFRS 16. ATM capex: 12 units. Software licences capitalised."}, {"num": "10.40", "name": "Manage Active Assets", "agent": "Maint. Agent", "icon": "🔧", "output": "ATM uptime: 99.4%. Branch equipment PPM: 98% on schedule. Trading system hardware: 2 servers flagged for refresh."}, {"num": "10.50", "name": "Perform Asset Maintenance", "agent": "Maint. Agent", "icon": "⚙️", "output": "Planned maintenance: 34 items. PCI-DSS compliance checks: all passed. 1 unplanned outage - root cause: network switch."}, {"num": "10.70", "name": "Analyze Assets", "agent": "Analytics", "icon": "📊", "output": "ROU asset portfolio: £48M. Depreciation charge: £620K/month. 4 locations identified for consolidation."}]}, "hc": {"steps": [{"num": "10.05", "name": "Define Medical Equipment Strategy", "agent": "Strategy Agent", "icon": "📐", "output": "Medical equipment register: 4,200 items. MHRA compliance: 98%. 12 devices approaching end-of-life. Replacement programme: £4.2M capital bid prepared. Risk matrix updated for life-critical devices."}, {"num": "10.20", "name": "Acquire Medical Equipment", "agent": "Asset Agent", "icon": "🏢", "output": "4 capital equipment orders via NHS Supply Chain. CE/MDR marking validated. MHRA device registration confirmed. Assets linked to clinical departments and PPM schedules activated."}, {"num": "10.40", "name": "Manage Medical Equipment", "agent": "Maint. Agent", "icon": "🔧", "output": "PPM schedule alerts: 42 devices due. 3 MHRA FSCAs assessed - 1 device quarantined. Medical gas pipeline: annual service completed. Life-critical alarms tested."}, {"num": "10.50", "name": "Perform Medical Maintenance", "agent": "Maint. Agent", "icon": "⚙️", "output": "PPM completion: 98.2%. 2 emergency repairs to ventilators - clinical engineering responded within 30 minutes. Electrical safety testing: 100%. eDMR records: all closed."}, {"num": "10.70", "name": "Analyze Medical Assets", "agent": "Analytics", "icon": "📊", "output": "Equipment utilisation: 71%. 18 assets recommended for disposal. Downtime impact on theatre capacity: 4 hours lost. PDC capital submission updated. MHRA Device Safety Intelligence reviewed."}]}, "ps": {"steps": [{"num": "10.05", "name": "Define Asset Strategy", "agent": "Strategy Agent", "icon": "📐", "output": "Office and IT asset strategy reviewed. Hotdesking ratio: 0.7 desks per head. 3 office leases under review."}, {"num": "10.20", "name": "Acquire Assets", "agent": "Asset Agent", "icon": "🏢", "output": "IT equipment orders: 48 laptops, 12 monitors. Leasehold improvements capitalised. Software licences: annual renewal processed."}, {"num": "10.40", "name": "Manage Active Assets", "agent": "Maint. Agent", "icon": "🔧", "output": "IT helpdesk: 34 hardware tickets resolved. 6 items flagged for warranty claim. Office lease breaks: 2 options assessed."}, {"num": "10.50", "name": "Perform Asset Maintenance", "agent": "Maint. Agent", "icon": "⚙️", "output": "PPM for office equipment: 100%. 4 laptops repaired under warranty. Cloud licence audit: 12% unused - savings identified."}, {"num": "10.70", "name": "Analyze Assets", "agent": "Analytics", "icon": "📊", "output": "Cost per seat: £4,200/yr. 14 underutilised licences (£18K saving). 3 office floors flagged for subletting review."}]}, "gov": {"steps": [{"num": "10.05", "name": "Define Asset Strategy", "agent": "Strategy Agent", "icon": "📐", "output": "National Asset Register entries updated. Land and building valuations reviewed. Government Property Strategy alignment confirmed."}, {"num": "10.20", "name": "Acquire Assets", "agent": "Asset Agent", "icon": "🏢", "output": "Capital purchases above £25K threshold approved by Finance Director. CCS frameworks used. OJEU compliance confirmed."}, {"num": "10.40", "name": "Manage Active Assets", "agent": "Maint. Agent", "icon": "🔧", "output": "Statutory compliance: fire, legionella, electrical - all certificates current. 3 DDA compliance issues flagged for estates team."}, {"num": "10.50", "name": "Perform Asset Maintenance", "agent": "Maint. Agent", "icon": "⚙️", "output": "FM contractor performance: 94% on SLA. 2 reactive maintenance calls responded within 4 hours. Annual building survey complete."}, {"num": "10.70", "name": "Analyze Assets", "agent": "Analytics", "icon": "📊", "output": "Asset utilisation: 68%. Surplus property: 4 sites identified. Disposal receipts target: £12M. FReM valuation prepared."}]}}}, {"id": "p20", "num": "20", "icon": "🎫", "name": "Case to Resolution", "desc": "Knowledge base management, case intake, active case management, resolution, and analytics.", "agents": [{"icon": "🧠", "label": "Orchestrator", "role": "orchestrator"}, {"icon": "📚", "label": "Knowledge Agent", "role": "knowledge"}, {"icon": "📥", "label": "Intake Agent", "role": "intake"}, {"icon": "🔎", "label": "Case Agent", "role": "case"}, {"icon": "✅", "label": "Resolution Agent", "role": "resolution"}, {"icon": "📊", "label": "Analytics", "role": "analytics"}], "industry": {"mfg": {"steps": [{"num": "20.10", "name": "Establish Knowledge Base", "agent": "Knowledge Agent", "icon": "📚", "output": "Technical service bulletins: 840 articles. 12 new TSBs auto-drafted from field cases. Repair procedure library: 98% up to date."}, {"num": "20.30", "name": "Intake Cases", "agent": "Intake Agent", "icon": "📥", "output": "840 warranty claims and technical queries ingested. AI classified: 94%. 42 high-severity field failures prioritised."}, {"num": "20.40", "name": "Manage and Work on Cases", "agent": "Case Agent", "icon": "🔎", "output": "Cases routed to product engineering: 124. AI solution suggestions: 67% accepted. 8 field defect patterns identified."}, {"num": "20.50", "name": "Resolve Cases", "agent": "Resolution Agent", "icon": "✅", "output": "Cases closed this week: 340. Average resolution time: 4.2 days. 18 cases escalated to design engineering for CAPA."}, {"num": "20.60", "name": "Analyze Case Performance", "agent": "Analytics", "icon": "📊", "output": "Warranty cost per unit: €42. Top failure mode: seal degradation (18%). CAPA closure rate: 84%. Supplier recovery: 3 claims filed."}]}, "retail": {"steps": [{"num": "20.10", "name": "Establish Knowledge Base", "agent": "Knowledge Agent", "icon": "📚", "output": "Product FAQ: 1,240 articles. Returns policy self-service: 68% deflection rate. 18 new articles auto-generated."}, {"num": "20.30", "name": "Intake Cases", "agent": "Intake Agent", "icon": "📥", "output": "4,820 customer contacts (returns, delivery, product queries). Self-service deflection: 38%. 14 high-distress contacts prioritised."}, {"num": "20.40", "name": "Manage and Work on Cases", "agent": "Case Agent", "icon": "🔎", "output": "Returns processed: 480. Delivery queries: 98% resolved first contact. 3 Trading Standards complaints escalated."}, {"num": "20.50", "name": "Resolve Cases", "agent": "Resolution Agent", "icon": "✅", "output": "Resolution rate: 94% within SLA. Compensation issued: £4,200. 2 product safety issues escalated to trading team."}, {"num": "20.60", "name": "Analyze Case Performance", "agent": "Analytics", "icon": "📊", "output": "FCR: 82%. CSAT: 4.3/5. Top driver: delivery delay (34%). 2 systemic fulfilment failures identified - ops team notified."}]}, "fs": {"steps": [{"num": "20.10", "name": "Establish Knowledge Base", "agent": "Knowledge Agent", "icon": "📚", "output": "Regulatory FAQ: 340 articles. FCA complaint guidance maintained. 4 articles updated following Consumer Duty implementation."}, {"num": "20.30", "name": "Intake Cases", "agent": "Intake Agent", "icon": "📥", "output": "1,240 client contacts. FCA complaint indicators detected: 42 - compliance workflow triggered. 8 high-distress clients."}, {"num": "20.40", "name": "Manage and Work on Cases", "agent": "Case Agent", "icon": "🔎", "output": "FCA complaints: all within 8-week resolution clock. 3 referred to FOS. Final response letters auto-drafted."}, {"num": "20.50", "name": "Resolve Cases", "agent": "Resolution Agent", "icon": "✅", "output": "39 complaints resolved within 8 weeks. Redress paid: £42K. Root cause analysis submitted to compliance."}, {"num": "20.60", "name": "Analyze Case Performance", "agent": "Analytics", "icon": "📊", "output": "Complaint rate: 0.8 per 1,000 clients. FOS referral rate: 7%. Root cause: 62% product complexity."}]}, "hc": {"steps": [{"num": "20.10", "name": "Establish Clinical Knowledge Base", "agent": "Knowledge Agent", "icon": "📚", "output": "Clinical protocol library: 840 SOPs. PALS FAQ: 340 articles maintained. Patient information leaflets: 240 reviewed against NICE guidance. 12 new articles auto-drafted from resolved PALS cases."}, {"num": "20.30", "name": "Intake Clinical Cases", "agent": "Intake Agent", "icon": "📥", "output": "2,400 contacts triaged: clinical queries (34%), admin (42%), PALS concerns (14%), formal complaints (10%). NHS complaints workflow triggered for 42 cases. Duty of Candour obligations: 4 cases actioned."}, {"num": "20.40", "name": "Manage Clinical Cases", "agent": "Case Agent", "icon": "🔎", "output": "PALS concerns: 98% acknowledged within 2 working days. 18 formal NHS complaints under investigation. 3 referrals to Parliamentary and Health Service Ombudsman."}, {"num": "20.50", "name": "Resolve Clinical Cases", "agent": "Resolution Agent", "icon": "✅", "output": "14 complaints resolved within 25-day target. Duty of Candour letters sent: 4. Learning actions: 8 quality improvement recommendations fed to clinical governance."}, {"num": "20.60", "name": "Analyze Case Performance", "agent": "Analytics", "icon": "📊", "output": "Complaint resolution: 78% within 25 days (NHS target). CSAT: 4.1/5. Top theme: waiting times (44%), communication (28%). CQC evidence pack updated."}]}, "ps": {"steps": [{"num": "20.10", "name": "Establish Knowledge Base", "agent": "Knowledge Agent", "icon": "📚", "output": "IT runbook: 840 procedures. HR policy FAQ: 340 articles. 18 new articles from resolved cases this month."}, {"num": "20.30", "name": "Intake Cases", "agent": "Intake Agent", "icon": "📥", "output": "Service desk: 1,240 tickets (IT 48%, HR 32%, Finance 20%). Self-service deflection: 44%. 8 P1s resolved same day."}, {"num": "20.40", "name": "Manage and Work on Cases", "agent": "Case Agent", "icon": "🔎", "output": "Tickets resolved: 1,180. Avg handle time: 12 mins. 8 complex cases escalated with full context. SLA compliance: 94%."}, {"num": "20.50", "name": "Resolve Cases", "agent": "Resolution Agent", "icon": "✅", "output": "1,180 tickets closed. 60 escalated to level 2. CSAT survey sent on close: 88% response rate."}, {"num": "20.60", "name": "Analyze Case Performance", "agent": "Analytics", "icon": "📊", "output": "FCR: 76%. CSAT: 4.4/5. Top driver: access/permissions (28%). Knowledge gap identified: cloud migration FAQs needed."}]}, "gov": {"steps": [{"num": "20.10", "name": "Establish Knowledge Base", "agent": "Knowledge Agent", "icon": "📚", "output": "Legislation FAQ: 1,240 articles. FOI guidance: 340 procedures. Policy summaries updated following 3 regulatory changes."}, {"num": "20.30", "name": "Intake Cases", "agent": "Intake Agent", "icon": "📥", "output": "8,400 citizen contacts. FOI requests: 240 - 20-day clock started automatically. MP correspondence: 42 - expedited routing."}, {"num": "20.40", "name": "Manage and Work on Cases", "agent": "Case Agent", "icon": "🔎", "output": "FOI compliance: 94% within 20 days. MP letters: 98% within 15 days. 3 ICO referrals - legal team notified with case bundle."}, {"num": "20.50", "name": "Resolve Cases", "agent": "Resolution Agent", "icon": "✅", "output": "8,160 contacts resolved. FOI refusals: 18 - Public Interest Test documented. 2 judicial review threats referred to legal."}, {"num": "20.60", "name": "Analyze Case Performance", "agent": "Analytics", "icon": "📊", "output": "FOI compliance rate: 94%. Top exemption used: Section 35 (policy). Complaint rate: 2.4%. Parliamentary statistics prepared."}]}}}, {"id": "p85", "num": "85", "icon": "🎯", "name": "Prospect to Quote", "desc": "CRM, lead qualification, opportunity management, quoting, and sales performance analysis.", "agents": [{"icon": "🧠", "label": "Orchestrator", "role": "orchestrator"}, {"icon": "👥", "label": "CRM Agent", "role": "crm"}, {"icon": "🎯", "label": "Lead Agent", "role": "lead"}, {"icon": "🏆", "label": "Oppty Agent", "role": "oppty"}, {"icon": "📝", "label": "Quote Agent", "role": "quote"}, {"icon": "📊", "label": "Analytics", "role": "analytics"}], "industry": {"mfg": {"steps": [{"num": "85.15", "name": "Manage Customer Relationships", "agent": "CRM Agent", "icon": "👥", "output": "OEM and distributor CRM: 1,240 accounts validated. 18 duplicates merged. Buying pattern analysis complete."}, {"num": "85.25", "name": "Identify and Qualify Leads", "agent": "Lead Agent", "icon": "🎯", "output": "84 inbound industrial leads scored. 28 MQL. 12 qualified based on machinery fit and capex signals."}, {"num": "85.45", "name": "Pursue Opportunities", "agent": "Oppty Agent", "icon": "🏆", "output": "Pipeline: €8.4M. 4 opportunities stalled - AI next-best actions sent. Capital equipment deals avg cycle: 14 months."}, {"num": "85.55", "name": "Estimate and Quote Sales", "agent": "Quote Agent", "icon": "📝", "output": "8 BOM-driven quotes generated. Tooling costs included. 3 require margin approval (below 22%)."}, {"num": "85.65", "name": "Analyze Sales Performance", "agent": "Analytics", "icon": "📊", "output": "Win rate: 28%. Avg deal: €420K. Lost deals: 3 on price, 2 on lead time. Quote-to-order: 34%."}]}, "retail": {"steps": [{"num": "85.15", "name": "Manage Customer Relationships", "agent": "CRM Agent", "icon": "👥", "output": "B2B wholesale accounts: 340. Data quality: 96%. Key account plans updated. Loyalty tier segmentation refreshed."}, {"num": "85.25", "name": "Identify and Qualify Leads", "agent": "Lead Agent", "icon": "🎯", "output": "Trade buyer leads: 124 scored. 42 qualified for ranging review meeting. Seasonal buying cycle signals detected."}, {"num": "85.45", "name": "Pursue Opportunities", "agent": "Oppty Agent", "icon": "🏆", "output": "Range review pipeline: £2.4M. 6 ranging decisions due in 30 days. AI drafted category pitch decks for 4 buyers."}, {"num": "85.55", "name": "Estimate and Quote Sales", "agent": "Quote Agent", "icon": "📝", "output": "14 buy sheet quotes generated. Volume pricing tiers applied. 3 promotional funding proposals included."}, {"num": "85.65", "name": "Analyze Sales Performance", "agent": "Analytics", "icon": "📊", "output": "Account penetration: 64%. Share of wallet: 38%. New product listings: 18. Distribution gains: 8 new stockists."}]}, "fs": {"steps": [{"num": "85.15", "name": "Manage Customer Relationships", "agent": "CRM Agent", "icon": "👥", "output": "Client CRM: 8,400 records. KYC status validated. 124 accounts due for periodic review. Segmentation updated by AUM tier."}, {"num": "85.25", "name": "Identify and Qualify Leads", "agent": "Lead Agent", "icon": "🎯", "output": "Suitability pre-screen applied to all inbound. 84 qualified prospects. AML risk score checked. 2 flagged for enhanced due diligence."}, {"num": "85.45", "name": "Pursue Opportunities", "agent": "Oppty Agent", "icon": "🏆", "output": "Pipeline: £12.4M AUM potential. 8 opportunities at review stage. Regulatory suitability assessments auto-drafted."}, {"num": "85.55", "name": "Estimate and Quote Sales", "agent": "Quote Agent", "icon": "📝", "output": "12 product suitability reports generated. PRIIPs KIDs attached. Fee disclosure included. Compliance sign-off: 100%."}, {"num": "85.65", "name": "Analyze Sales Performance", "agent": "Analytics", "icon": "📊", "output": "Conversion rate: 42%. AUM acquired: £84M. CAC: £1,200. Client retention: 94%."}]}, "hc": {"steps": [{"num": "85.15", "name": "Manage Commissioner Relationships", "agent": "CRM Agent", "icon": "👥", "output": "NHS commissioner and ICB relationship plans updated. 2,400 HCP contacts in CRM. Engagement plans reviewed for 12 key formulary decision-makers. Patient experience NPS: 74."}, {"num": "85.25", "name": "Identify Service Opportunities", "agent": "Lead Agent", "icon": "🎯", "output": "NHS tender opportunities on Find a Tender: 18 monitored. 6 qualified for bid submission. ICB commissioning intentions reviewed for new service lines. Clinical champion engaged."}, {"num": "85.45", "name": "Pursue Service Contracts", "agent": "Oppty Agent", "icon": "🏆", "output": "Service line development pipeline: £4.2M. 3 tenders in active evaluation. HTA submission prepared for 1 new pathway. NHS procurement route confirmed (AQP vs block contract)."}, {"num": "85.55", "name": "Develop Service Proposals", "agent": "Quote Agent", "icon": "📝", "output": "6 NHS service specification responses prepared. MEAT scoring criteria fully addressed. Activity-based costing model applied. NICE appraisal outcome referenced. Regulatory status (CQC registered, MHRA licensed) verified."}, {"num": "85.65", "name": "Analyze Service Performance", "agent": "Analytics", "icon": "📊", "output": "Tender win rate: 42%. New service contracts: 3 awarded this quarter. Patient volumes vs contracted activity: 104%. FFT positive rating: 94%."}]}, "ps": {"steps": [{"num": "85.15", "name": "Manage Customer Relationships", "agent": "CRM Agent", "icon": "👥", "output": "Client CRM: 840 accounts. 3 key account plans refreshed. 4 new C-suite contacts added. NPS updated."}, {"num": "85.25", "name": "Identify and Qualify Leads", "agent": "Lead Agent", "icon": "🎯", "output": "RFP/tender monitoring: 28 new opportunities identified. 12 qualified by service fit, budget signal and decision timeline."}, {"num": "85.45", "name": "Pursue Opportunities", "agent": "Oppty Agent", "icon": "🏆", "output": "Pipeline: £8.4M. Bid decisions required: 6. 3 opportunities at risk of stall - partner review triggered."}, {"num": "85.55", "name": "Estimate and Quote Sales", "agent": "Quote Agent", "icon": "📝", "output": "8 proposals generated. Effort estimation reviewed by delivery leads. Margin: 3 below 22% - partner approval obtained."}, {"num": "85.65", "name": "Analyze Sales Performance", "agent": "Analytics", "icon": "📊", "output": "Win rate: 36%. Avg deal: £240K. Cycle time: 62 days. Proposal cost: £4,200 avg."}]}, "gov": {"steps": [{"num": "85.15", "name": "Manage Customer Relationships", "agent": "CRM Agent", "icon": "👥", "output": "Contracting authority CRM: 340 accounts. Framework renewal pipeline monitored. 12 new authority contacts identified."}, {"num": "85.25", "name": "Identify and Qualify Leads", "agent": "Lead Agent", "icon": "🎯", "output": "Contracts Finder and Find a Tender: 42 opportunities monitored. 14 qualified by framework lot eligibility."}, {"num": "85.45", "name": "Pursue Opportunities", "agent": "Oppty Agent", "icon": "🏆", "output": "Bid pipeline: £12.4M. 3 ITTs in progress. Incumbent positions being challenged - defend strategy activated."}, {"num": "85.55", "name": "Estimate and Quote Sales", "agent": "Quote Agent", "icon": "📝", "output": "3 ITT responses prepared. Social value commitments included. 100% MEAT criteria addressed."}, {"num": "85.65", "name": "Analyze Sales Performance", "agent": "Analytics", "icon": "📊", "output": "Public sector win rate: 44%. Framework utilisation: 78% of wins. Avg contract value: £840K."}]}}}, {"id": "p95", "num": "95", "icon": "🔧", "name": "Service to Deliver", "desc": "Service strategy, work planning, field service execution, delivery, and performance analysis.", "agents": [{"icon": "🧠", "label": "Orchestrator", "role": "orchestrator"}, {"icon": "📐", "label": "Strategy Agent", "role": "strategy"}, {"icon": "🗓️", "label": "Planning Agent", "role": "planning"}, {"icon": "🔧", "label": "Field Agent", "role": "field"}, {"icon": "✅", "label": "Resolution Agent", "role": "resolution"}, {"icon": "📊", "label": "Analytics", "role": "analytics"}], "industry": {"mfg": {"steps": [{"num": "95.05", "name": "Develop Service Strategy", "agent": "Strategy Agent", "icon": "📐", "output": "Service contracts reviewed: 340 machines under SLA. Predictive vs reactive ratio target: 70/30. Contract renewal pipeline: €1.2M."}, {"num": "95.15", "name": "Plan Service Work", "agent": "Planning Agent", "icon": "🗓️", "output": "847 service requests triaged. Predictive triggers from IoT: 42. Field engineer routes optimised - 16% travel reduction."}, {"num": "95.25", "name": "Manage Service Work", "agent": "Field Agent", "icon": "🔧", "output": "234 active jobs tracked. 4 SLA breach risks flagged. Emergency callouts: 8 (avg response: 94 mins)."}, {"num": "95.35", "name": "Deliver Services", "agent": "Resolution Agent", "icon": "✅", "output": "187 jobs completed. First-time fix: 91%. 3 return visits required. Warranty recovery: 2 claims filed."}, {"num": "95.45", "name": "Analyze Service Performance", "agent": "Analytics", "icon": "📊", "output": "CSAT: 4.7/5. MTTR: 2.4 hrs. Cost per service event: €168 (down 11%). Service contract margin: 34%."}]}, "retail": {"steps": [{"num": "95.05", "name": "Develop Service Strategy", "agent": "Strategy Agent", "icon": "📐", "output": "Store estate SLA: 4-hour response for critical equipment. Contractor framework refreshed. PPM programme for 340 locations set."}, {"num": "95.15", "name": "Plan Service Work", "agent": "Planning Agent", "icon": "🗓️", "output": "Weekly maintenance schedule: 840 planned tasks. 3 stores with urgent reactive requests prioritised."}, {"num": "95.25", "name": "Manage Service Work", "agent": "Field Agent", "icon": "🔧", "output": "Contractor work orders: 240 active. 2 stores with refrigeration failure escalated urgently."}, {"num": "95.35", "name": "Deliver Services", "agent": "Resolution Agent", "icon": "✅", "output": "234 jobs completed. PPM compliance: 99%. 4 equipment replacements approved."}, {"num": "95.45", "name": "Analyze Service Performance", "agent": "Analytics", "icon": "📊", "output": "Store equipment uptime: 99.2%. Service cost per store: £840/month. Contractor performance: 3 flagged below SLA."}]}, "fs": {"steps": [{"num": "95.05", "name": "Develop Service Strategy", "agent": "Strategy Agent", "icon": "📐", "output": "Operational resilience service tiers defined. ATM SLA: 99.5% uptime. IT service catalogue reviewed for DORA compliance."}, {"num": "95.15", "name": "Plan Service Work", "agent": "Planning Agent", "icon": "🗓️", "output": "ATM maintenance schedule: 340 units. Branch IT service queue prioritised. 2 critical system patches scheduled."}, {"num": "95.25", "name": "Manage Service Work", "agent": "Field Agent", "icon": "🔧", "output": "Service tickets: 840 open. P1 incidents: 2 (both resolved within 1 hour). ATM downtime: 0.3%."}, {"num": "95.35", "name": "Deliver Services", "agent": "Resolution Agent", "icon": "✅", "output": "840 tickets resolved. FCR: 78%. FCA complaints protocol followed for 3 service failures."}, {"num": "95.45", "name": "Analyze Service Performance", "agent": "Analytics", "icon": "📊", "output": "System availability: 99.94%. MTTR: 42 mins. FCA reportable incidents: 0 this month. Resilience score: 94/100."}]}, "hc": {"steps": [{"num": "95.05", "name": "Develop Clinical Service Strategy", "agent": "Strategy Agent", "icon": "📐", "output": "Elective waiting list: 4,200 patients triaged by clinical priority (P1/P2/P3). NHS service specification updated per NICE QS. Safe staffing levels validated against NHSI guidance."}, {"num": "95.15", "name": "Plan Clinical Service Delivery", "agent": "Planning Agent", "icon": "🗓️", "output": "Theatre scheduling optimised - 3% efficiency gain. Outpatient slot utilisation: 94%. Community referral pathways: 8 bottlenecks cleared. Diagnostic demand: 6-week wait target being tracked."}, {"num": "95.25", "name": "Manage Clinical Delivery", "agent": "Field Agent", "icon": "🔧", "output": "RTT clock management: 4,200 pathways tracked in real time. 42 breach risks identified - 18-week coordinator contacted. 8 complex cases escalated to MDT. Diagnostic wait (6-week standard): 91% achieving."}, {"num": "95.35", "name": "Deliver Clinical Services", "agent": "Resolution Agent", "icon": "✅", "output": "Elective procedures: 840 this month. Day surgery rate: 84% (target 85%). Did Not Attend rate: 6.2% - text reminder system activated. PROMS collected pre-op: 94%. Discharge summaries within 24 hours: 91%."}, {"num": "95.45", "name": "Analyze Service Performance", "agent": "Analytics", "icon": "📊", "output": "RTT 18-week: 78%. Diagnostic 6-week: 91%. FFT: 94% positive. Readmission rate: 4.2% (target <5%). Cost per WTE benchmarked. GIRFT variation: 2 outlier specialties identified for peer review."}]}, "ps": {"steps": [{"num": "95.05", "name": "Develop Service Strategy", "agent": "Strategy Agent", "icon": "📐", "output": "Managed service SLA tiers: 3 client categories. Service catalogue updated for cloud and AI advisory services. Renewal pipeline: £2.4M."}, {"num": "95.15", "name": "Plan Service Work", "agent": "Planning Agent", "icon": "🗓️", "output": "Service delivery schedule: 34 managed clients. 3 resource conflicts resolved. Major delivery milestones tracked."}, {"num": "95.25", "name": "Manage Service Work", "agent": "Field Agent", "icon": "🔧", "output": "Client service tickets: 124. SLA breach risk: 4 items escalated. Consultant deployment: 2 new site visits arranged."}, {"num": "95.35", "name": "Deliver Services", "agent": "Resolution Agent", "icon": "✅", "output": "Milestone completions: 18. Client sign-off obtained: 16. 2 pending commercial agreement. Service credits: 1 issued (£8K)."}, {"num": "95.45", "name": "Analyze Service Performance", "agent": "Analytics", "icon": "📊", "output": "NPS: 72. Renewal rate: 88%. Upsell rate: 24%. Avg service margin: 32%. 3 accounts flagged for churn risk."}]}, "gov": {"steps": [{"num": "95.05", "name": "Develop Service Strategy", "agent": "Strategy Agent", "icon": "📐", "output": "Public service SLA standards reviewed. GDS service performance benchmarks applied. Accessibility compliance: WCAG 2.1 AA confirmed."}, {"num": "95.15", "name": "Plan Service Work", "agent": "Planning Agent", "icon": "🗓️", "output": "Digital service work queue: 840 tickets. 3 statutory response deadlines approaching. Field visits: 42 planned."}, {"num": "95.25", "name": "Manage Service Work", "agent": "Field Agent", "icon": "🔧", "output": "Service requests: 840 active. FOI deadline compliance: 98%. 2 ministerial correspondence items expedited."}, {"num": "95.35", "name": "Deliver Services", "agent": "Resolution Agent", "icon": "✅", "output": "Resolution rate: 92% within target. 3 complaints escalated to Parliamentary Ombudsman. Public CSAT: 4.1/5."}, {"num": "95.45", "name": "Analyze Service Performance", "agent": "Analytics", "icon": "📊", "output": "Transaction completion rate: 87%. Cost per transaction: £8.40. Citizen satisfaction: 4.1/5. GDS performance dashboard updated."}]}}}, {"id": "p50", "num": "50", "icon": "📈", "name": "Forecast to Plan", "desc": "Business strategy, S&OP planning, execution, financial planning, and business performance analysis.", "agents": [{"icon": "🧠", "label": "Orchestrator", "role": "orchestrator"}, {"icon": "🌐", "label": "Strategy Agent", "role": "strategy"}, {"icon": "📦", "label": "S&OP Agent", "role": "sop"}, {"icon": "📈", "label": "Exec. Agent", "role": "exec"}, {"icon": "💰", "label": "Finance Agent", "role": "finance"}, {"icon": "📊", "label": "Analytics", "role": "analytics"}], "industry": {"mfg": {"steps": [{"num": "50.15", "name": "Develop Business Strategy", "agent": "Strategy Agent", "icon": "🌐", "output": "Manufacturing strategy updated: 3 new product families planned. Footprint review: 2 plant scenarios modelled."}, {"num": "50.25", "name": "Conduct S&OP Planning", "agent": "S&OP Agent", "icon": "📦", "output": "Consensus demand forecast: 4.2M units for Q3. Supply constraints modelled: 1 bottleneck identified. Exec S&OP summary prepared."}, {"num": "50.35", "name": "Execute Sales and Operations", "agent": "Exec. Agent", "icon": "📈", "output": "Production plan deployed. OEE targets set per line. 2 demand spikes triggered supply response."}, {"num": "50.55", "name": "Conduct Financial Planning", "agent": "Finance Agent", "icon": "💰", "output": "Standard cost update modelled. Capex plan: €18M. Rolling forecast: Q3 revenue €48M."}, {"num": "50.65", "name": "Analyze Business Performance", "agent": "Analytics", "icon": "📊", "output": "Balanced scorecard: 9/12 KPIs on track. Revenue vs plan: 103%. EBITDA margin: 22.4%."}]}, "retail": {"steps": [{"num": "50.15", "name": "Develop Business Strategy", "agent": "Strategy Agent", "icon": "🌐", "output": "Category strategy refreshed. 3 new market entries planned. Digital commerce investment: £8.4M approved."}, {"num": "50.25", "name": "Conduct S&OP Planning", "agent": "S&OP Agent", "icon": "📦", "output": "Open-to-buy: £24M for Q3. Seasonal demand model: +18% peak uplift. Supplier capacity confirmed."}, {"num": "50.35", "name": "Execute Sales and Operations", "agent": "Exec. Agent", "icon": "📈", "output": "OTB deployed. Markdown triggers set. 2 promotional volume spikes detected - replenishment accelerated."}, {"num": "50.55", "name": "Conduct Financial Planning", "agent": "Finance Agent", "icon": "💰", "output": "Rolling forecast: £84M revenue Q3. Gross margin: 48%. Capex: £12M."}, {"num": "50.65", "name": "Analyze Business Performance", "agent": "Analytics", "icon": "📊", "output": "Like-for-like: +8%. Market share: +0.4pp. NPS: 68. Digital penetration: 34%."}]}, "fs": {"steps": [{"num": "50.15", "name": "Develop Business Strategy", "agent": "Strategy Agent", "icon": "🌐", "output": "Strategic plan refreshed: 3 new product lines planned. Capital deployment strategy updated."}, {"num": "50.25", "name": "Conduct S&OP Planning", "agent": "S&OP Agent", "icon": "📦", "output": "Balance sheet capacity plan: £1.2B new AUM target. ICAAP stress scenarios run."}, {"num": "50.35", "name": "Execute Sales and Operations", "agent": "Exec. Agent", "icon": "📈", "output": "Product issuance plan deployed. 2 macro risks flagged - hedging strategy updated."}, {"num": "50.55", "name": "Conduct Financial Planning", "agent": "Finance Agent", "icon": "💰", "output": "3-year plan: NIM target 2.2%. Cost-income ratio: 55%. RoE: 14%."}, {"num": "50.65", "name": "Analyze Business Performance", "agent": "Analytics", "icon": "📊", "output": "RoRWA: 12.8%. NIM: 2.14%. Cost-income: 58%. Capital ratio: 15.8%."}]}, "hc": {"steps": [{"num": "50.15", "name": "Develop Clinical Strategy", "agent": "Strategy Agent", "icon": "🌐", "output": "5-year strategic plan updated. 3 new service lines planned: endoscopy hub, virtual wards, elective orthopaedics. Population health trends integrated from JSNA. CQC strategic risk register refreshed."}, {"num": "50.25", "name": "Conduct Capacity Planning", "agent": "S&OP Agent", "icon": "📦", "output": "Demand model updated: elective recovery plan for 4,200 waiting list patients. Capacity: 4 theatres and 2 endoscopy rooms modelled. Winter pressures surge plan reviewed. Workforce aligned to activity forecast."}, {"num": "50.35", "name": "Execute Operational Plan", "agent": "Exec. Agent", "icon": "📈", "output": "Activity plan deployed. 2 demand spikes (respiratory admissions) - escalation framework activated. RTT 18-week tracking: 78% achieving standard. Community discharge pathways: 3 bottlenecks resolved."}, {"num": "50.55", "name": "Conduct Financial Planning", "agent": "Finance Agent", "icon": "💰", "output": "NHS Long Term Plan financial model updated. CIP target: £4.2M (68% delivered YTD). Capital plan: £18M. NHSI financial improvement plan milestones on track."}, {"num": "50.65", "name": "Analyze Performance", "agent": "Analytics", "icon": "📊", "output": "RTT: 78% vs 92% target. A&E 4-hour: 74%. I&E: £2.4M deficit. CIP delivery: 68%. CQUIN: 84%. Friends and Family: 94% positive."}]}, "ps": {"steps": [{"num": "50.15", "name": "Develop Business Strategy", "agent": "Strategy Agent", "icon": "🌐", "output": "Service line strategy: 3 new capabilities launched. Geographic expansion: 2 new offices planned."}, {"num": "50.25", "name": "Conduct S&OP Planning", "agent": "S&OP Agent", "icon": "📦", "output": "Pipeline-to-revenue: £8.4M qualified. Resource model: 340 consultants. Hiring plan: 18 additional FTEs for H2."}, {"num": "50.35", "name": "Execute Sales and Operations", "agent": "Exec. Agent", "icon": "📈", "output": "Revenue plan deployed. Utilisation targets set: 82%. 3 pipeline risks flagged - acceleration plans generated."}, {"num": "50.55", "name": "Conduct Financial Planning", "agent": "Finance Agent", "icon": "💰", "output": "Revenue forecast: £14.2M. Margin target: 28%. Partner draw model run. Lockup target: 38 days."}, {"num": "50.65", "name": "Analyze Business Performance", "agent": "Analytics", "icon": "📊", "output": "Revenue: 104% of plan. Utilisation: 84%. Win rate: 36%. 3 service lines above target."}]}, "gov": {"steps": [{"num": "50.15", "name": "Develop Business Strategy", "agent": "Strategy Agent", "icon": "🌐", "output": "Spending Review submission prepared. Published Plan targets reviewed. Ministerial priority mapping updated."}, {"num": "50.25", "name": "Conduct S&OP Planning", "agent": "S&OP Agent", "icon": "📦", "output": "Public service demand: 3-year model updated. Workforce capacity: 2,800 FTE plan. Digital transformation pipeline: £42M."}, {"num": "50.35", "name": "Execute Sales and Operations", "agent": "Exec. Agent", "icon": "📈", "output": "Operational plan deployed. 2 demand pressures flagged - contingency plans activated."}, {"num": "50.55", "name": "Conduct Financial Planning", "agent": "Finance Agent", "icon": "💰", "output": "DEL/AME split confirmed. Supplementary Estimates: £42M underspend flagged. Capital plan: £84M."}, {"num": "50.65", "name": "Analyze Business Performance", "agent": "Analytics", "icon": "📊", "output": "DEL spend: 81% of annual budget. 8/12 KPIs on track. Productivity: 96% vs plan."}]}}}, {"id": "p30", "num": "30", "icon": "📣", "name": "Concept to Market", "desc": "Marketing strategy, research and development, campaign planning, execution, and performance measurement.", "agents": [{"icon": "🧠", "label": "Orchestrator", "role": "orchestrator"}, {"icon": "🗺️", "label": "Strategy Agent", "role": "strategy"}, {"icon": "🔬", "label": "Research Agent", "role": "research"}, {"icon": "📣", "label": "Campaign Agent", "role": "campaign"}, {"icon": "⚡", "label": "Activation Agent", "role": "activation"}, {"icon": "📊", "label": "Analytics", "role": "analytics"}], "industry": {"mfg": {"steps": [{"num": "30.05", "name": "Develop Marketing Strategy", "agent": "Strategy Agent", "icon": "🗺️", "output": "ICP updated for 3 industrial segments. Value proposition refreshed for CNC and automation products."}, {"num": "30.15", "name": "Research and Develop Offerings", "agent": "Research Agent", "icon": "🔬", "output": "VoC survey: 240 industrial buyers. 4 unmet needs identified. Competitor analysis: 2 new entrants detected."}, {"num": "30.35", "name": "Prepare Marketing Campaigns", "agent": "Campaign Agent", "icon": "📣", "output": "Trade show programme: 3 events. Content: 8 technical white papers planned. LinkedIn campaign: 6 ad sets built."}, {"num": "30.45", "name": "Manage Marketing Campaigns", "agent": "Activation Agent", "icon": "⚡", "output": "Trade show leads: 124 captured. LinkedIn CTR: 2.4%. 2 underperforming ad sets paused. Webinar registrations: 340."}, {"num": "30.55", "name": "Analyze Marketing Operations", "agent": "Analytics", "icon": "📊", "output": "Pipeline generated: €2.4M. MQL: 84. CAC: €1,200. Trade show ROI: 340% vs target."}]}, "retail": {"steps": [{"num": "30.05", "name": "Develop Marketing Strategy", "agent": "Strategy Agent", "icon": "🗺️", "output": "Brand positioning refreshed for Q3. Loyalty programme strategy updated: 2.4M active members. Digital-first budget: 68%."}, {"num": "30.15", "name": "Research and Develop Offerings", "agent": "Research Agent", "icon": "🔬", "output": "Basket analysis: 1.2M transactions. 4 cross-sell opportunities identified. NPS: 68. Social sentiment: positive 74%."}, {"num": "30.35", "name": "Prepare Marketing Campaigns", "agent": "Campaign Agent", "icon": "📣", "output": "Summer campaign: 18 ad variants built. Loyalty trigger emails: 8 sequences. Influencer content: 24 creators briefed."}, {"num": "30.45", "name": "Manage Marketing Campaigns", "agent": "Activation Agent", "icon": "⚡", "output": "Email open rate: 28%. ROAS: 4.2x. 3 ad groups auto-optimised. Loyalty redemption: 18% above forecast."}, {"num": "30.55", "name": "Analyze Marketing Operations", "agent": "Analytics", "icon": "📊", "output": "Campaign revenue: £4.2M incremental. CAC: £18. Loyalty uplift: +24% basket size. Top channel: CRM email (38%)."}]}, "fs": {"steps": [{"num": "30.05", "name": "Develop Marketing Strategy", "agent": "Strategy Agent", "icon": "🗺️", "output": "Target market assessment completed for 3 new products. FCA-compliant messaging confirmed."}, {"num": "30.15", "name": "Research and Develop Offerings", "agent": "Research Agent", "icon": "🔬", "output": "Competitor rate monitoring: daily. Switching trigger analysis: 3 factors identified. Customer outcome research: 840 responses."}, {"num": "30.35", "name": "Prepare Marketing Campaigns", "agent": "Campaign Agent", "icon": "📣", "output": "Product launch campaign: all financial promotions FCA-approved. 6 copy variants tested for clarity."}, {"num": "30.45", "name": "Manage Marketing Campaigns", "agent": "Activation Agent", "icon": "⚡", "output": "Campaign live: applications +34%. 2 ad variants paused. Retargeting: 18% conversion improvement."}, {"num": "30.55", "name": "Analyze Marketing Operations", "agent": "Analytics", "icon": "📊", "output": "AUM acquired: £84M. CAC: £1,200. Product conversion: 4.2%. Regulatory complaint rate: 0%."}]}, "hc": {"steps": [{"num": "30.05", "name": "Develop Patient Engagement Strategy", "agent": "Strategy Agent", "icon": "🗺️", "output": "Patient and public engagement strategy updated. Service communication plan aligned to ICB priorities. ABPI Code compliance confirmed for all HCP-facing materials."}, {"num": "30.15", "name": "Research Patient and Population Needs", "agent": "Research Agent", "icon": "🔬", "output": "Patient experience research: 840 responses analysed. PROMS/PREMS data reviewed for 3 service lines. 4 unmet care pathway gaps identified. NICE guideline changes monitored: 2 impacting current services."}, {"num": "30.35", "name": "Prepare Health Campaigns", "agent": "Campaign Agent", "icon": "📣", "output": "Public health campaign: bowel cancer screening uptake programme. All materials reviewed by clinical lead and patient group. WCAG 2.1: 100%. Translated into 6 community languages. NHS England approval obtained."}, {"num": "30.45", "name": "Manage Health Campaigns", "agent": "Activation Agent", "icon": "⚡", "output": "Screening campaign live: 18% uplift in referrals vs baseline. GP practice engagement: 84% of target practices reached. Social media reach: 240K. NHS website traffic to referral pathway: +34%."}, {"num": "30.55", "name": "Analyze Campaign Performance", "agent": "Analytics", "icon": "📊", "output": "Screening uptake: +18pp. Cancer diagnosis at earlier stage: improvement tracked. Cost per additional patient engaged: £14. Campaign reach: 4.2M citizens."}]}, "ps": {"steps": [{"num": "30.05", "name": "Develop Marketing Strategy", "agent": "Strategy Agent", "icon": "🗺️", "output": "Thought leadership strategy updated for 3 service lines. Target account list: 84 priority firms."}, {"num": "30.15", "name": "Research and Develop Offerings", "agent": "Research Agent", "icon": "🔬", "output": "Procurement intelligence: 42 RFP notices monitored. Client business intelligence: 18 key accounts researched."}, {"num": "30.35", "name": "Prepare Marketing Campaigns", "agent": "Campaign Agent", "icon": "📣", "output": "ABM programme: 24 target accounts. Content: 4 insight reports drafted. Events: 2 roundtables planned."}, {"num": "30.45", "name": "Manage Marketing Campaigns", "agent": "Activation Agent", "icon": "⚡", "output": "Webinar attendance: 124. Report downloads: 840. ABM engagement: 18/24 target accounts activated."}, {"num": "30.55", "name": "Analyze Marketing Operations", "agent": "Analytics", "icon": "📊", "output": "Pipeline generated: £4.2M. CAC: £8,400. Content attribution: 44% of new wins."}]}, "gov": {"steps": [{"num": "30.05", "name": "Develop Communications Strategy", "agent": "Strategy Agent", "icon": "🗺️", "output": "GCS communications strategy approved. Ministerial priorities mapped. Evaluation framework (Magenta Book) applied to all campaigns."}, {"num": "30.15", "name": "Research Public Needs", "agent": "Research Agent", "icon": "🔬", "output": "Public perception tracker: quarterly survey 4,000 citizens. Media sentiment: 68% positive. Stakeholder mapping updated."}, {"num": "30.35", "name": "Prepare Public Campaigns", "agent": "Campaign Agent", "icon": "📣", "output": "Public information campaigns: 3 live. WCAG 2.1 AA: 100%. Accessible formats: BSL, Easy Read prepared. GCS approval confirmed."}, {"num": "30.45", "name": "Manage Public Campaigns", "agent": "Activation Agent", "icon": "⚡", "output": "Campaign reach: 4.2M citizens. GOV.UK traffic: +34%. Social media engagement: 840K interactions."}, {"num": "30.55", "name": "Analyze Campaign Performance", "agent": "Analytics", "icon": "📊", "output": "Behaviour change: 18% uplift on target outcome. Cost per beneficiary: £2.40. GCS evaluation submitted."}]}}}, {"id": "p40", "num": "40", "icon": "💡", "name": "Design to Retire", "desc": "Product or service strategy, introduction, active management, retirement, and portfolio analysis.", "agents": [{"icon": "🧠", "label": "Orchestrator", "role": "orchestrator"}, {"icon": "💡", "label": "Strategy Agent", "role": "strategy"}, {"icon": "🆕", "label": "Launch Agent", "role": "launch"}, {"icon": "📦", "label": "Product Agent", "role": "product"}, {"icon": "🔚", "label": "Retire Agent", "role": "retire"}, {"icon": "📊", "label": "Analytics", "role": "analytics"}], "industry": {"mfg": {"steps": [{"num": "40.10", "name": "Develop Product Strategy", "agent": "Strategy Agent", "icon": "💡", "output": "Product portfolio: 84 SKUs. APQP initiated for 3 new products. Roadmap prioritised by NPV."}, {"num": "40.20", "name": "Introduce Products", "agent": "Launch Agent", "icon": "🆕", "output": "2 new products launched: PPAP approved, CE marked, dealer training complete."}, {"num": "40.50", "name": "Manage Active Products", "agent": "Product Agent", "icon": "📦", "output": "8 engineering changes processed. REACH/RoHS compliance updated for 4 SKUs."}, {"num": "40.60", "name": "Retire Products", "agent": "Retire Agent", "icon": "🔚", "output": "3 products end-of-life initiated. Last-time buy communicated to distributors. Spare parts stocking plan: 10 years."}, {"num": "40.90", "name": "Analyze Product Performance", "agent": "Analytics", "icon": "📊", "output": "Portfolio revenue: €42M. Top 3 SKUs: 58% of revenue. 4 SKUs flagged: margin below 18%."}]}, "retail": {"steps": [{"num": "40.10", "name": "Develop Product Strategy", "agent": "Strategy Agent", "icon": "💡", "output": "Range architecture reviewed. 3 new categories entered. Space productivity analysis: 48 SKUs to be delisted."}, {"num": "40.20", "name": "Introduce Products", "agent": "Launch Agent", "icon": "🆕", "output": "340 new lines introduced this season. Planogram updates distributed to 340 stores. 18 new vendors onboarded."}, {"num": "40.50", "name": "Manage Active Products", "agent": "Product Agent", "icon": "📦", "output": "4 products repriced following competitor analysis. 12 products reformulated."}, {"num": "40.60", "name": "Retire Products", "agent": "Retire Agent", "icon": "🔚", "output": "48 SKUs delisted. Clearance pricing applied. 18 items transferred to clearance channel."}, {"num": "40.90", "name": "Analyze Product Performance", "agent": "Analytics", "icon": "📊", "output": "Sales density: £840/sq ft. Rate of sale: top 10 SKUs identified. Return on space: +12%."}]}, "fs": {"steps": [{"num": "40.10", "name": "Develop Product Strategy", "agent": "Strategy Agent", "icon": "💡", "output": "Product governance committee: 3 new products approved. TMA completed. FCA PROD compliance confirmed."}, {"num": "40.20", "name": "Introduce Products", "agent": "Launch Agent", "icon": "🆕", "output": "2 products launched: regulatory approval confirmed, KID/KIID prepared, distribution network activated."}, {"num": "40.50", "name": "Manage Active Products", "agent": "Product Agent", "icon": "📦", "output": "Consumer Duty outcome monitoring: all products reviewed. 2 products repriced for fair value."}, {"num": "40.60", "name": "Retire Products", "agent": "Retire Agent", "icon": "🔚", "output": "1 product wind-down: client communications FCA-approved. Orderly exit plan: 6 months."}, {"num": "40.90", "name": "Analyze Product Performance", "agent": "Analytics", "icon": "📊", "output": "8/12 products meeting return targets. Persistency: 88%. Customer outcomes: 94% meeting good outcome criteria."}]}, "hc": {"steps": [{"num": "40.10", "name": "Develop Clinical Service and Medicine Strategy", "agent": "Strategy Agent", "icon": "💡", "output": "Clinical service portfolio reviewed: 18 specialties. JSNA-aligned service development pipeline updated. 3 new care pathways planned. HTA dossiers: 2 in preparation. Patent expiry and biosimilar switching: 4 medicines assessed."}, {"num": "40.20", "name": "Introduce Clinical Services and Medicines", "agent": "Launch Agent", "icon": "🆕", "output": "1 new medicine pathway launched: EMA/MHRA authorisation confirmed. NICE TA compliance: implemented within 3-month statutory requirement. Formulary submission approved by P&T committee. HCP training: 340 clinicians."}, {"num": "40.50", "name": "Manage Active Services and Medicines", "agent": "Product Agent", "icon": "📦", "output": "Pharmacovigilance: 42 ADR reports processed and submitted to MHRA Yellow Card. 3 licence variations filed. SmPC updates: 6 completed. Supply chain continuity: 2 medicines on national shortage list monitored daily."}, {"num": "40.60", "name": "Retire Services and Medicines", "agent": "Retire Agent", "icon": "🔚", "output": "2 medicines withdrawn from formulary: biosimilar switch completed. Patient communication letters: 840 sent. MHRA notification submitted. Residual stock disposal: DOOP certificates generated. Clinical audit triggered post-switch."}, {"num": "40.90", "name": "Analyze Portfolio Performance", "agent": "Analytics", "icon": "📊", "output": "Formulary adherence: 94%. Biosimilar adoption: 78% (target 80%). NICE guideline compliance: 100%. Medicines optimisation savings: £340K. PROMS outcomes by pathway updated."}]}, "ps": {"steps": [{"num": "40.10", "name": "Develop Service Strategy", "agent": "Strategy Agent", "icon": "💡", "output": "Service line roadmap: 3 new offerings planned. NPV by service line updated. 2 offerings identified for sunset."}, {"num": "40.20", "name": "Introduce Services", "agent": "Launch Agent", "icon": "🆕", "output": "2 new services launched. Methodology packaged. Sales toolkit distributed. 18 consultants trained."}, {"num": "40.50", "name": "Manage Active Services", "agent": "Product Agent", "icon": "📦", "output": "4 services repriced following benchmark review. 2 methodologies updated with AI tooling."}, {"num": "40.60", "name": "Retire Services", "agent": "Retire Agent", "icon": "🔚", "output": "1 service line sunset. Client transitions managed. 8 consultants redeployed to growing practices."}, {"num": "40.90", "name": "Analyze Service Performance", "agent": "Analytics", "icon": "📊", "output": "Revenue by service line: digital +34%, strategy +12%, operations flat. 3 services above target."}]}, "gov": {"steps": [{"num": "40.10", "name": "Develop Digital Service Strategy", "agent": "Strategy Agent", "icon": "💡", "output": "Digital service strategy: GDS standards applied. 3 new public-facing services in alpha. User research: 240 participants."}, {"num": "40.20", "name": "Introduce Digital Services", "agent": "Launch Agent", "icon": "🆕", "output": "2 services moved to beta: accessibility audit passed. User satisfaction: 82%. GOV.UK publishing: live."}, {"num": "40.50", "name": "Manage Active Services", "agent": "Product Agent", "icon": "📦", "output": "4 services updated following user feedback. WCAG 2.1: 100%. GDPR compliance reviewed. Performance metrics published."}, {"num": "40.60", "name": "Retire Legacy Services", "agent": "Retire Agent", "icon": "🔚", "output": "2 legacy services decommissioned. User migration plan executed. Data retention policy applied."}, {"num": "40.90", "name": "Analyze Service Performance", "agent": "Analytics", "icon": "📊", "output": "Completion rate: 87%. Cost per transaction: £8.40. User satisfaction: 82%. GOV.UK performance dashboard updated."}]}}}, {"id": "p70", "num": "70", "icon": "🏭", "name": "Plan to Produce", "desc": "Production strategies, MRP planning, operations execution, quality control, and performance analysis.", "agents": [{"icon": "🧠", "label": "Orchestrator", "role": "orchestrator"}, {"icon": "📐", "label": "Strategy Agent", "role": "strategy"}, {"icon": "🗓️", "label": "Planning Agent", "role": "planning"}, {"icon": "🏭", "label": "Prod. Agent", "role": "prod"}, {"icon": "🔍", "label": "Quality Agent", "role": "quality"}, {"icon": "📊", "label": "Analytics", "role": "analytics"}], "industry": {"mfg": {"steps": [{"num": "70.10", "name": "Develop Production Strategy", "agent": "Strategy Agent", "icon": "📐", "output": "Capacity plan updated: 2 lines at 94% utilisation. Bottleneck: final assembly. Outsourcing evaluated for 3 non-core subassemblies."}, {"num": "70.20", "name": "Plan Production Operations", "agent": "Planning Agent", "icon": "🗓️", "output": "MRP run: 1,240 planned orders. 3 material shortages - expedite POs raised. Sequencing optimised for changeover reduction."}, {"num": "70.30", "name": "Run Production Operations", "agent": "Prod. Agent", "icon": "🏭", "output": "4,820 units produced (97.4% of plan). 2 line stoppages - maintenance alerts sent. WIP tracked in real time via MES."}, {"num": "70.60", "name": "Control Production Quality", "agent": "Quality Agent", "icon": "🔍", "output": "480 samples inspected. Defect rate: 0.6%. 1 batch quarantined - supplier raw material variance confirmed. CAPA raised."}, {"num": "70.70", "name": "Analyze Production", "agent": "Analytics", "icon": "📊", "output": "OEE: 82%. Scrap cost: €14K. Yield improvement opportunity identified on Line 3 (+12%)."}]}, "retail": {"steps": [{"num": "70.10", "name": "Develop Production Strategy", "agent": "Strategy Agent", "icon": "📐", "output": "Own-brand production plan updated for season. CMO capacity confirmed for 8 supplier factories."}, {"num": "70.20", "name": "Plan Production Operations", "agent": "Planning Agent", "icon": "🗓️", "output": "Production orders placed with 12 suppliers. Lead time compliance: 94%. 3 orders expedited for peak season."}, {"num": "70.30", "name": "Run Production Operations", "agent": "Prod. Agent", "icon": "🏭", "output": "Goods production tracked across 12 factories. 2 factories behind schedule - mitigation options generated."}, {"num": "70.60", "name": "Control Production Quality", "agent": "Quality Agent", "icon": "🔍", "output": "Pre-shipment inspections: 18 batches. Pass rate: 94%. 2 batches held for corrective action."}, {"num": "70.70", "name": "Analyze Production", "agent": "Analytics", "icon": "📊", "output": "Landed cost vs standard: +2.4% adverse. Quality failure rate: 3.2%. Supplier ranking updated."}]}, "fs": {"steps": [{"num": "70.10", "name": "Develop Operations Strategy", "agent": "Strategy Agent", "icon": "📐", "output": "Operations production plan: client reporting, statements, valuations. SLA targets set by client tier. Automation coverage: 74%."}, {"num": "70.20", "name": "Plan Operations", "agent": "Planning Agent", "icon": "🗓️", "output": "Month-end reporting queue: 2,840 client reports scheduled. Resource allocation optimised. 3 priority packs expedited."}, {"num": "70.30", "name": "Run Operations", "agent": "Prod. Agent", "icon": "🏭", "output": "2,840 reports produced. SLA compliance: 97%. 4 complex valuations required manual review."}, {"num": "70.60", "name": "Control Quality", "agent": "Quality Agent", "icon": "🔍", "output": "Quality review: 98.4% accuracy rate. 12 reports returned for correction. 2 regulatory disclosures flagged."}, {"num": "70.70", "name": "Analyze Operations", "agent": "Analytics", "icon": "📊", "output": "Throughput: 2,840 reports/month. Error rate: 1.6%. Automation opportunity identified: +14% coverage."}]}, "hc": {"steps": [{"num": "70.10", "name": "Develop Pharmacy Production Strategy", "agent": "Strategy Agent", "icon": "📐", "output": "Pharmacy production plan: batch manufacturing strategy for 12 aseptic preparations. GMP compliance confirmed. Clean room utilisation: 78%. MHRA licence conditions reviewed with QP."}, {"num": "70.20", "name": "Plan Clinical Production", "agent": "Planning Agent", "icon": "🗓️", "output": "Clinical supply schedule: 48 aseptic batches planned. Cold chain logistics confirmed for biological therapies. Serialisation and FMD compliance validated. Cytotoxic demand forecast updated from oncology clinics."}, {"num": "70.30", "name": "Run Clinical Production", "agent": "Prod. Agent", "icon": "🏭", "output": "42 batches completed. eDMR batch records closed. 1 in-process deviation raised - QA investigation initiated. Reconstitution of 840 IV doses completed. Expiry management: zero waste this period."}, {"num": "70.60", "name": "Control Clinical Quality", "agent": "Quality Agent", "icon": "🔍", "output": "Batch release: 41/42 approved by QP. 1 batch under microbiological investigation. CoA generated. Environmental monitoring: within limits. FDA 21 CFR Part 11 audit trail: complete."}, {"num": "70.70", "name": "Analyze Production Performance", "agent": "Analytics", "icon": "📊", "output": "Batch right-first-time: 97.6%. OOS results: 1 (microbiological). Yield: 99.1%. CAPA closure rate: 91%. Cost per preparation: £48 avg."}]}, "ps": {"steps": [{"num": "70.10", "name": "Develop Delivery Strategy", "agent": "Strategy Agent", "icon": "📐", "output": "Deliverable production plan updated for 34 active engagements. Methodology quality standards reviewed."}, {"num": "70.20", "name": "Plan Delivery Operations", "agent": "Planning Agent", "icon": "🗓️", "output": "Consultant work allocation: 340 FTEs. 3 deadline conflicts resolved. 2 deliverables rescheduled by client agreement."}, {"num": "70.30", "name": "Run Delivery Operations", "agent": "Prod. Agent", "icon": "🏭", "output": "Deliverable completion: 94% on time. 4 items delayed by client feedback cycle."}, {"num": "70.60", "name": "Control Delivery Quality", "agent": "Quality Agent", "icon": "🔍", "output": "Quality review completion: 98%. 6 deliverables returned for revision. Partner sign-off: 2 pending."}, {"num": "70.70", "name": "Analyze Delivery Performance", "agent": "Analytics", "icon": "📊", "output": "Rework hours: 124 (2.1% of total). Write-off: £28K. On-time delivery: 94%. Client acceptance rate: 97%."}]}, "gov": {"steps": [{"num": "70.10", "name": "Develop Policy Production Strategy", "agent": "Strategy Agent", "icon": "📐", "output": "Policy and legislation production plan updated. Parliamentary timetable confirmed. Consultation schedule aligned to ministerial priorities."}, {"num": "70.20", "name": "Plan Policy Production", "agent": "Planning Agent", "icon": "🗓️", "output": "SI production pipeline: 18 instruments in progress. Impact assessment schedule updated. Attorney General sign-off tracked."}, {"num": "70.30", "name": "Run Policy Production", "agent": "Prod. Agent", "icon": "🏭", "output": "8 SIs laid before Parliament this month. 4 consultation responses processed. Correspondence: 98% within 20-day target."}, {"num": "70.60", "name": "Control Policy Quality", "agent": "Quality Agent", "icon": "🔍", "output": "Legal quality review: 100% passed. Accessibility compliance: 98%. Equalities impact: 12 assessments complete."}, {"num": "70.70", "name": "Analyze Policy Production", "agent": "Analytics", "icon": "📊", "output": "Parliamentary business: on schedule. Consultation response quality: 4.2/5. Productivity vs plan: 96%."}]}}}, {"id": "p60", "num": "60", "icon": "📦", "name": "Inventory to Deliver", "desc": "Warehouse operations, inventory management, inbound and outbound goods, quality, and transportation.", "agents": [{"icon": "🧠", "label": "Orchestrator", "role": "orchestrator"}, {"icon": "🏪", "label": "WMS Agent", "role": "wms"}, {"icon": "📦", "label": "Inbound Agent", "role": "inbound"}, {"icon": "🚚", "label": "Outbound Agent", "role": "outbound"}, {"icon": "🔄", "label": "Replenish. Agent", "role": "replenish"}, {"icon": "📊", "label": "Analytics", "role": "analytics"}], "industry": {"mfg": {"steps": [{"num": "60.10", "name": "Manage Warehouse Operations", "agent": "WMS Agent", "icon": "🏪", "output": "Slotting optimised: 240 bin moves for raw materials. Mixed-mode storage: raw, WIP, FG zones configured. Cycle count: 4 variances."}, {"num": "60.20", "name": "Maintain Inventory Levels", "agent": "Replenish. Agent", "icon": "🔄", "output": "Kanban signals triggered: 18 replenishments. VMI orders auto-generated for 6 suppliers. Safety stock reviewed vs production plan."}, {"num": "60.30", "name": "Process Inbound Goods", "agent": "Inbound Agent", "icon": "📦", "output": "8 inbound shipments. Lot/serial traceability applied. GR/QI integration: 12 items sampled. 2 supplier quality holds raised."}, {"num": "60.40", "name": "Process Outbound Goods", "agent": "Outbound Agent", "icon": "🚚", "output": "340 customer shipments. Sequenced delivery to 3 assembly lines. DESADV sent. Carrier: 96.8% on-time departure."}, {"num": "60.80", "name": "Analyze Warehouse Operations", "agent": "Analytics", "icon": "📊", "output": "Throughput: 2,140 lines/day. Storage utilisation: 84%. Labour productivity +8% vs plan. OTIF: 97.4%."}]}, "retail": {"steps": [{"num": "60.10", "name": "Manage Warehouse Operations", "agent": "WMS Agent", "icon": "🏪", "output": "Omnichannel DC: wave planning optimised for 4,820 orders. Hanging garments area reconfigured. Pre-pack lines activated."}, {"num": "60.20", "name": "Maintain Inventory Levels", "agent": "Replenish. Agent", "icon": "🔄", "output": "Store replenishment: 340 stores triggered from POS sell-through data. 48 slow-movers identified (>90 day cover)."}, {"num": "60.30", "name": "Process Inbound Goods", "agent": "Inbound Agent", "icon": "📦", "output": "Supplier ASNs: 98% received in advance. PO match: 96% automated. 3 supplier packaging non-conformances raised."}, {"num": "60.40", "name": "Process Outbound Goods", "agent": "Outbound Agent", "icon": "🚚", "output": "4,820 orders despatched. Same-day cut-off met: 98%. Last-mile carrier selection: AI-optimised. Returns handled: 124."}, {"num": "60.80", "name": "Analyze Warehouse Operations", "agent": "Analytics", "icon": "📊", "output": "Perfect order rate: 98.2%. On-shelf availability: 94.8%. Despatch on time: 97.1%."}]}, "fs": {"steps": [{"num": "60.10", "name": "Manage Document and Asset Operations", "agent": "WMS Agent", "icon": "🏪", "output": "Secure document archive: 240K records. Chain of custody validated. Destruction certificates generated for 1,200 expired items."}, {"num": "60.20", "name": "Maintain Inventory Levels", "agent": "Replenish. Agent", "icon": "🔄", "output": "Branch cash inventory: 340 locations monitored. ATM replenishment schedule optimised. Cash forecasting: 98% accuracy."}, {"num": "60.30", "name": "Process Inbound", "agent": "Inbound Agent", "icon": "📦", "output": "Cash receipts: all counted and verified. Secure media intake: dual-control process followed. Tamper-evidence checks: 100%."}, {"num": "60.40", "name": "Process Outbound", "agent": "Outbound Agent", "icon": "🚚", "output": "Regulatory documents despatched: tracked delivery confirmed. Client statements: 99.8% delivered on schedule."}, {"num": "60.80", "name": "Analyze Operations", "agent": "Analytics", "icon": "📊", "output": "Document SLA compliance: 99.4%. Cash variance: 0.002%. Secure destruction compliance: 100%."}]}, "hc": {"steps": [{"num": "60.10", "name": "Manage Pharmacy Stores", "agent": "WMS Agent", "icon": "🏪", "output": "Pharmacy stores: FEFO rotation enforced. Narcotics balance: daily CD register confirmed. Cold chain: all fridges within 2-8 degrees C. High-alert medications: separated and double-labelled per NPSA guidance."}, {"num": "60.20", "name": "Maintain Clinical Inventory", "agent": "Replenish. Agent", "icon": "🔄", "output": "Ward par-level replenishment: 48 wards triggered. Consignment stock reconciled with 3 implant suppliers. 3 formulary items at critical low - urgent orders raised. National shortage: 1 drug escalated."}, {"num": "60.30", "name": "Process Inbound Clinical Goods", "agent": "Inbound Agent", "icon": "📦", "output": "Deliveries received: 124. Temperature excursion alert: 1 cold chain delivery (biologics) quarantined. Batch and expiry validation: 100%. Controlled drug receipts: dual-witness process followed."}, {"num": "60.40", "name": "Process Outbound Clinical Goods", "agent": "Outbound Agent", "icon": "🚚", "output": "Unit dose dispensing: 8,400 doses prepared and labelled. Patient-specific TPN bags: 42 prepared and despatched. 1 dispensing query intercepted before administration - near miss logged. Discharge prescriptions: 98% within 4 hours."}, {"num": "60.80", "name": "Analyze Pharmacy Operations", "agent": "Analytics", "icon": "📊", "output": "Stock accuracy: 99.8%. Near-expiry waste: £2,400 (down 18%). Controlled drug discrepancy: 0. Supply continuity: 0 stockouts. Dispensing error rate: 0.02% (target <0.1%). CQC evidence updated."}]}, "ps": {"steps": [{"num": "60.10", "name": "Manage Asset Stores", "agent": "WMS Agent", "icon": "🏪", "output": "IT asset stores: 340 items tracked. Equipment pool: 48 items available for project deployment."}, {"num": "60.20", "name": "Maintain Inventory Levels", "agent": "Replenish. Agent", "icon": "🔄", "output": "Office supplies: auto-replenishment triggered for 8 items. Cloud licences: 12 unused (£18K saving flagged)."}, {"num": "60.30", "name": "Process Inbound Goods", "agent": "Inbound Agent", "icon": "📦", "output": "IT equipment received: 48 laptops checked and enrolled in MDM. 3 damaged units raised with supplier."}, {"num": "60.40", "name": "Process Outbound Goods", "agent": "Outbound Agent", "icon": "🚚", "output": "Client site deployments: 8 this week. Security wiping confirmed on 6 returned items."}, {"num": "60.80", "name": "Analyze Operations", "agent": "Analytics", "icon": "📊", "output": "Asset utilisation: 84%. Equipment availability for new projects: 92%. Procurement lead time: 4.2 days avg."}]}, "gov": {"steps": [{"num": "60.10", "name": "Manage Strategic Stores", "agent": "WMS Agent", "icon": "🏪", "output": "Strategic reserve: rotation schedule on track. PSN/CESG security controls applied for classified materials."}, {"num": "60.20", "name": "Maintain Inventory Levels", "agent": "Replenish. Agent", "icon": "🔄", "output": "Emergency stockpile sufficiency: 12 weeks supply confirmed. 4 items below threshold - procurement initiated."}, {"num": "60.30", "name": "Process Inbound Goods", "agent": "Inbound Agent", "icon": "📦", "output": "Goods received against CCS POs. Inventory accepted into bonded stores. Security classification applied."}, {"num": "60.40", "name": "Process Outbound Goods", "agent": "Outbound Agent", "icon": "🚚", "output": "Controlled goods: export licensing confirmed before despatch. Track and trace active. Ministerial sign-off for 2 sensitive consignments."}, {"num": "60.80", "name": "Analyze Warehouse Operations", "agent": "Analytics", "icon": "📊", "output": "Stockpile readiness: 94%. Storage cost per unit: £0.34. Inventory turn: 2.4x. Sufficiency report prepared for senior officials."}]}}}, {"id": "p99", "num": "99", "icon": "⚙️", "name": "Administer to Operate", "desc": "System implementation, security, data management, system monitoring, and release management.", "agents": [{"icon": "🧠", "label": "Orchestrator", "role": "orchestrator"}, {"icon": "🛠️", "label": "Impl. Agent", "role": "impl"}, {"icon": "🔐", "label": "Security Agent", "role": "security"}, {"icon": "🗄️", "label": "Data Agent", "role": "data"}, {"icon": "📡", "label": "Monitor Agent", "role": "monitor"}, {"icon": "🔄", "label": "Release Agent", "role": "release"}], "industry": {"mfg": {"steps": [{"num": "99.01", "name": "Implement Solutions", "agent": "Impl. Agent", "icon": "🛠️", "output": "MES/ERP integration: 98% data fidelity. Shop floor devices: 240 enrolled. IoT sensor feeds: 42 streams live. Go-live readiness: 94%."}, {"num": "99.25", "name": "Manage Access and Security", "agent": "Security Agent", "icon": "🔐", "output": "ITAR data classification applied. 18 access reviews completed. OT/IT network segmentation validated. ISO 27001 audit: passed."}, {"num": "99.55", "name": "Manage Data", "agent": "Data Agent", "icon": "🗄️", "output": "Product master data: 99.2% quality. BOM integrity check: 100%. Material master: 4 duplicates cleansed."}, {"num": "99.35", "name": "Monitor Systems", "agent": "Monitor Agent", "icon": "📡", "output": "ERP uptime: 99.94%. MES performance: within SLA. IoT data latency: <200ms. 2 anomalies resolved before production impact."}, {"num": "99.50", "name": "Uptake Software Releases", "agent": "Release Agent", "icon": "🔄", "output": "Wave release assessed: 8 manufacturing processes impacted. Regression: 96% pass. Production freeze respected."}]}, "retail": {"steps": [{"num": "99.01", "name": "Implement Solutions", "agent": "Impl. Agent", "icon": "🛠️", "output": "Omnichannel platform: 340 POS terminals enrolled. WMS integration: 99% data fidelity. Peak trading load test: passed."}, {"num": "99.25", "name": "Manage Access and Security", "agent": "Security Agent", "icon": "🔐", "output": "PCI-DSS compliance: certified. Cardholder data access: 12 reviews completed. Penetration test: passed."}, {"num": "99.55", "name": "Manage Data", "agent": "Data Agent", "icon": "🗄️", "output": "Product master: 99.4% quality. 840 duplicates cleansed. Customer data: GDPR right-to-erasure: 24 requests processed."}, {"num": "99.35", "name": "Monitor Systems", "agent": "Monitor Agent", "icon": "📡", "output": "POS availability: 99.98%. Ecommerce: 99.94%. 1 performance alert resolved. Black Friday readiness: auto-scaling configured."}, {"num": "99.50", "name": "Uptake Software Releases", "agent": "Release Agent", "icon": "🔄", "output": "Wave release: 12 retail processes impacted. Release scheduled outside trading hours. Regression: 94% pass."}]}, "fs": {"steps": [{"num": "99.01", "name": "Implement Solutions", "agent": "Impl. Agent", "icon": "🛠️", "output": "Regulatory change deployment: SMCR updates applied. FCA system notifications validated. Audit trail: 100% complete."}, {"num": "99.25", "name": "Manage Access and Security", "agent": "Security Agent", "icon": "🔐", "output": "PAM controls: all privileged access reviewed. FCA change management: 100% compliant. MFA: 100%."}, {"num": "99.55", "name": "Manage Data", "agent": "Data Agent", "icon": "🗄️", "output": "Data quality: 96.4%. CCAR/DFAST data integrity verified. Right-to-erasure: 42 requests processed."}, {"num": "99.35", "name": "Monitor Systems", "agent": "Monitor Agent", "icon": "📡", "output": "Trading system uptime: 99.999%. Payments availability: 99.997%. FCA operational resilience: within impact tolerances."}, {"num": "99.50", "name": "Uptake Software Releases", "agent": "Release Agent", "icon": "🔄", "output": "Wave release: FCA regulatory impact assessed. Change advisory board: approved. Regression: 98% pass."}]}, "hc": {"steps": [{"num": "99.01", "name": "Implement Clinical Systems", "agent": "Impl. Agent", "icon": "🛠️", "output": "EPR go-live: 2,400 users trained across 6 sites. DCB0160 Clinical Safety Officer sign-off obtained. Downtime procedures tested: paper-based fallback confirmed. HL7 FHIR R4 messages validated at 99.8% fidelity."}, {"num": "99.25", "name": "Manage Access and Security", "agent": "Security Agent", "icon": "🔐", "output": "NHS DSPT compliance: confirmed (Standards Met). Caldicott Guardian annual review: complete. Role-based access: 2,400 smartcard users validated. Cyber Essentials Plus: certified. NCSC CAF self-assessment submitted."}, {"num": "99.55", "name": "Manage Clinical Data", "agent": "Data Agent", "icon": "🗄️", "output": "Patient data quality: 98.4% NHS number match rate. IG toolkit obligations met. GDPR: 18 subject access requests processed within 30 days. Data retention: automated deletion of records past retention schedule. IG training: 99% complete."}, {"num": "99.35", "name": "Monitor Clinical Systems", "agent": "Monitor Agent", "icon": "📡", "output": "EPR uptime: 99.96%. HL7 interface availability: 99.94%. 1 data feed delay (30 mins) resolved before clinical impact. Cyber threat monitoring: 0 incidents. Business continuity test: passed."}, {"num": "99.50", "name": "Uptake Software Releases", "agent": "Release Agent", "icon": "🔄", "output": "Clinical system Wave release: DCB0129 Hazard Log reviewed. 6 clinical processes impacted - Clinical Safety Officer sign-off obtained. Regression: 97% pass. Clinical staff notified 2 weeks prior."}]}, "ps": {"steps": [{"num": "99.01", "name": "Implement Solutions", "agent": "Impl. Agent", "icon": "🛠️", "output": "Multi-tenant platform: 34 client environments configured. Configuration drift: 0. Automated testing coverage: 92%."}, {"num": "99.25", "name": "Manage Access and Security", "agent": "Security Agent", "icon": "🔐", "output": "ISO 27001 surveillance audit: passed. Client data segregation: validated. Penetration test: minor findings remediated."}, {"num": "99.55", "name": "Manage Data", "agent": "Data Agent", "icon": "🗄️", "output": "Client data quality: 97.8%. 3 clients offboarded cleanly. GDPR processing agreements: all current."}, {"num": "99.35", "name": "Monitor Systems", "agent": "Monitor Agent", "icon": "📡", "output": "Platform availability: 99.96%. Client SLA compliance: 100%. 2 performance anomalies investigated and resolved."}, {"num": "99.50", "name": "Uptake Software Releases", "agent": "Release Agent", "icon": "🔄", "output": "Wave release: 8 processes impacted across client tenants. Client change freeze periods respected. Regression: 95% pass."}]}, "gov": {"steps": [{"num": "99.01", "name": "Implement Solutions", "agent": "Impl. Agent", "icon": "🛠️", "output": "GDS Service Standard compliance: confirmed. Accessibility: WCAG 2.1 AA. IT Health Check: passed. Go-live: approved."}, {"num": "99.25", "name": "Manage Access and Security", "agent": "Security Agent", "icon": "🔐", "output": "HMG Security Policy Framework: compliant. NCSC guidance: implemented. PSN connectivity: validated. Security clearances: 100% current."}, {"num": "99.55", "name": "Manage Data", "agent": "Data Agent", "icon": "🗄️", "output": "Official classification: 100% applied. DPA 2018 compliance: confirmed. ICO registration: current. Data retention schedule: enforced."}, {"num": "99.35", "name": "Monitor Systems", "agent": "Monitor Agent", "icon": "📡", "output": "GOV.UK availability: 99.98%. PSN performance: within targets. ITHC compliance: confirmed. 0 security incidents this month."}, {"num": "99.50", "name": "Uptake Software Releases", "agent": "Release Agent", "icon": "🔄", "output": "Wave release: GDS approval obtained. Parliamentary recess window used for deployment. Regression: 96% pass."}]}}}]};
+
+// ── STATE ──────────────────────────────────────────────────────────────────
+let curInd = DATA.INDUSTRIES[0].id;
+let curProc = DATA.PROCESSES[0].id;
+let simRunning = false;
+let simTimer = null;
+let assessStep = 0;  // 0=not started, 1-5=questions, 6=result
+let assessData = {};
+
+// ── PROCESS MAPPING LOGIC ──────────────────────────────────────────────────
+// Given discovery answers, return recommended process ids + rationale
+function mapProcesses(d){
+  const always = ['p99','p55','p90']; // always relevant
+  const byIndustry = {
+    mfg:    ['p70','p60','p10','p75','p50','p65','p95','p80'],
+    retail: ['p65','p60','p30','p75','p40','p50','p20','p85'],
+    fs:     ['p65','p90','p85','p30','p20','p80','p75','p50'],
+    hc:     ['p95','p20','p10','p55','p75','p90','p50','p30'],
+    ps:     ['p80','p85','p65','p20','p30','p75','p50','p40'],
+    gov:    ['p90','p20','p75','p80','p55','p50','p95','p10'],
+  };
+  const byOps = {
+    'buying and procurement':       ['p75','p60'],
+    'sales and quoting':            ['p85','p65'],
+    'manufacturing or production':  ['p70','p60','p10'],
+    'field service or maintenance': ['p95','p10'],
+    'project delivery':             ['p80','p65'],
+    'finance and reporting':        ['p90','p65'],
+    'hr and workforce':             ['p55'],
+    'customer service':             ['p20','p95'],
+    'marketing and campaigns':      ['p30','p40'],
+    'logistics and warehousing':    ['p60','p75'],
+  };
+  const byPain = {
+    'too much manual data entry':   ['p90','p65','p75'],
+    'slow approvals and workflows': ['p75','p80','p65'],
+    'poor visibility across teams': ['p50','p90','p80'],
+    'high cost of operations':      ['p75','p55','p70'],
+    'slow customer response times': ['p20','p95','p85'],
+    'compliance and audit risk':    ['p90','p99','p55'],
+    'inventory and supply issues':  ['p60','p75','p70'],
+    'project overruns':             ['p80','p50'],
+  };
+
+  let scored = {};
+  const add = (ids, weight) => ids.forEach(id=>{ scored[id]=(scored[id]||0)+weight; });
+
+  add(always, 3);
+  add(byIndustry[d.industry] || [], 2);
+  (d.ops||[]).forEach(op => add(byOps[op]||[], 3));
+  (d.pains||[]).forEach(pain => add(byPain[pain]||[], 4));
+
+  // size modifier — smaller companies use fewer agents
+  const sizeLimit = {micro:4, small:6, mid:9, enterprise:15}[d.size]||9;
+
+  return Object.entries(scored)
+    .sort((a,b)=>b[1]-a[1])
+    .slice(0, sizeLimit)
+    .map(([id,score])=>({id, score, proc: DATA.PROCESSES.find(p=>p.id===id)}))
+    .filter(x=>x.proc);
+}
+let cfgState = { model:'claude-sonnet-4-20250514', mode:'Agentic', sources:['D365','SharePoint'] };
+
+const $ = id => document.getElementById(id);
+const ind = () => DATA.INDUSTRIES.find(i=>i.id===curInd);
+const proc = () => DATA.PROCESSES.find(p=>p.id===curProc);
+const steps = () => { const p=proc(); return p?.industry?.[curInd]?.steps || p?.industry?.[Object.keys(p.industry)[0]]?.steps || []; };
+const setColor = c => document.documentElement.style.setProperty('--ic', c);
+
+// ── INDUSTRY TABS ──────────────────────────────────────────────────────────
+function buildIndTabs(){
+  const el=$('ind-tabs');
+  el.innerHTML=DATA.INDUSTRIES.map(i=>`
+    <div class="ind-tab${i.id===curInd?' active':''}" data-id="${i.id}" style="${i.id===curInd?'color:'+i.color+';border-color:'+i.color:''}">
+      ${i.name}
+    </div>`).join('');
+  el.querySelectorAll('.ind-tab').forEach(t=>t.addEventListener('click',()=>{
+    curInd=t.dataset.id;
+    setColor(ind().color);
+    buildIndTabs();
+    buildSidebar();
+    renderMain();
+  }));
+}
+
+// ── SIDEBAR ────────────────────────────────────────────────────────────────
+function buildSidebar(){
+  const el=$('proc-list');
+  el.innerHTML=DATA.PROCESSES.map(p=>`
+    <button class="proc-btn${p.id===curProc?' active':''}" data-id="${p.id}">
+      <span style="font-size:11px">${p.icon}</span>
+      <span style="flex:1">${p.name}</span>
+      <span class="pnum">${p.num}</span>
+    </button>`).join('');
+  el.querySelectorAll('.proc-btn').forEach(b=>b.addEventListener('click',()=>{
+    curProc=b.dataset.id;
+    buildSidebar();
+    resetSim();
+    renderMain();
+  }));
+}
+
+// ── PROC HEADER ────────────────────────────────────────────────────────────
+function renderHeader(){
+  const p=proc(), i=ind();
+  $('proc-header').innerHTML=`
+    <div class="ph-badge" style="color:${i.color}">${i.name}</div>
+    <div class="ph-top">
+      <div>
+        <div class="ph-num">Process ${p.num}</div>
+        <div class="ph-title">${p.name}</div>
+      </div>
+    </div>
+    <div class="ph-desc">${p.desc}</div>`;
+}
+
+// ── AGENT ARCHITECTURE ─────────────────────────────────────────────────────
+function renderArch(){
+  const p = proc();
+  const specs = p.agents.filter(a=>a.role!=='orchestrator');
+  const n = specs.length;
+
+  // Layout constants
+  // Node dimensions — wider to fit emoji + label
+  const NW = 100, NH = 50, ORCH_Y = 10, SPEC_Y = 108;
+  const W = 560;
+  const gap = Math.max(6, (W - n*NW) / (n+1));
+  const totalSpecW = n*NW + (n-1)*gap;
+  const specX0 = Math.max(0, (W - totalSpecW) / 2);
+  const orchX = (W - NW) / 2;
+  const orchCX = orchX + NW/2;
+  const orchBY = ORCH_Y + NH;
+
+  // Orch agent — use process icon
+  const orchAgent = proc().agents.find(a=>a.role==='orchestrator') || {icon:'🧠',label:'Orchestrator'};
+
+  // Elbow connectors: orch bottom -> midY -> each spec top
+  const midY = ORCH_Y + NH + 22;
+  const lines = specs.map((_, i) => {
+    const sx = specX0 + i*(NW+gap) + NW/2;
+    return `<path class="arch-connector" d="M${orchCX},${orchBY} L${orchCX},${midY} L${sx},${midY} L${sx},${SPEC_Y}"/>`;
+  }).join('');
+
+  // Specialist nodes with emoji
+  const specNodes = specs.map((a, i) => {
+    const x = specX0 + i*(NW+gap);
+    const cx = x + NW/2;
+    return `<g>
+        <rect class="arch-node-box" x="${x}" y="${SPEC_Y}" width="${NW}" height="${NH}" rx="4"/>
+        <text font-size="16" x="${cx}" y="${SPEC_Y+18}" text-anchor="middle" dominant-baseline="middle">${a.icon}</text>
+        <text class="arch-node-title" x="${cx}" y="${SPEC_Y+38}" text-anchor="middle">${a.label}</text>
+      </g>`;
+  }).join('');
+
+  const totalH = SPEC_Y + NH + 8;
+
+  $('agent-arch').innerHTML = `
+    <div class="arch-label">Agent Orchestration Architecture</div>
+    <svg class="arch-svg-wrap" viewBox="0 0 ${W} ${totalH}" style="display:block;width:100%;height:auto;overflow:visible">
+      ${lines}
+      <g>
+        <rect class="arch-node-box orch" x="${orchX}" y="${ORCH_Y}" width="${NW}" height="${NH}" rx="4"/>
+        <text font-size="16" x="${orchCX}" y="${ORCH_Y+16}" text-anchor="middle" dominant-baseline="middle">${orchAgent.icon}</text>
+        <text class="arch-node-title" x="${orchCX}" y="${ORCH_Y+38}" text-anchor="middle">Orchestrator</text>
+      </g>
+      ${specNodes}
+    </svg>`;
+}
+
+// ── STEPS ──────────────────────────────────────────────────────────────────
+function renderSteps(runIdx=-1, doneSet=new Set()){
+  $('steps-grid').innerHTML=steps().map((s,i)=>{
+    const done=doneSet.has(i), run=i===runIdx;
+    return `<div class="step-card${run?' running':done?' done':' pending'}">
+      <div class="sc-top">
+        <div class="sc-meta">
+          <div class="sc-num">${s.num}</div>
+          <div class="sc-name">${s.name}</div>
+        </div>
+        ${run?'<span class="sc-badge running">running</span>':done?'<span class="sc-badge done">done</span>':''}
+      </div>
+      <div class="sc-agent">Agent: <em>${s.agent}</em></div>
+      <div class="sc-output">${s.output}</div>
+    </div>`;
+  }).join('');
+}
+
+// ── SIMULATION ─────────────────────────────────────────────────────────────
+function resetSim(){
+  if(simTimer) clearTimeout(simTimer);
+  simRunning=false;
+  $('run-btn').disabled=false;
+  $('run-btn').textContent='Run Simulation';
+  $('prog-bar').style.width='0';
+  $('prog-label').textContent='Ready';
+  $('log-body').textContent='Awaiting simulation run...';
+  $('out-body').innerHTML='';
+  renderSteps();
+}
+
+function runSim(){
+  if(simRunning) return;
+  simRunning=true;
+  $('run-btn').disabled=true;
+  const ss=steps(), total=ss.length;
+  let idx=0;
+  const done=new Set(), logs=[], outs=[];
+
+  function tick(){
+    if(idx>=total){
+      $('prog-bar').style.width='100%';
+      $('prog-label').textContent='Complete';
+      $('run-btn').disabled=false;
+      $('run-btn').textContent='Re-run';
+      simRunning=false;
+      $('out-body').innerHTML=outs.map(o=>`
+        <div class="out-item">
+          <div class="out-step">${o.num} — ${o.name}</div>
+          <div>${o.output}</div>
+        </div>`).join('');
+      return;
+    }
+    const s=ss[idx];
+    $('prog-bar').style.width=Math.round((idx/total)*100)+'%';
+    $('prog-label').textContent=`Step ${idx+1} / ${total}`;
+    renderSteps(idx,done);
+    const ts=new Date().toLocaleTimeString('en-GB',{hour12:false});
+    logs.push(`<div><span class="log-ts">[${ts}]</span>  ${s.agent}  →  ${s.name}</div>`);
+    $('log-body').innerHTML=logs.join('');
+    $('log-body').scrollTop=$('log-body').scrollHeight;
+    setTimeout(()=>{
+      done.add(idx); outs.push(s);
+      renderSteps(-1,done);
+      idx++;
+      simTimer=setTimeout(tick,550);
+    },850);
+  }
+  tick();
+}
+
+$('run-btn').addEventListener('click',()=>{
+  if($('run-btn').textContent==='Re-run') resetSim();
+  setTimeout(runSim, 50);
+});
+
+// ── BOTTOM TABS ────────────────────────────────────────────────────────────
+document.querySelectorAll('.bot-tab').forEach(t=>t.addEventListener('click',()=>{
+  document.querySelectorAll('.bot-tab').forEach(x=>x.classList.remove('active'));
+  t.classList.add('active');
+  $('log-body').style.display=t.dataset.p==='log'?'block':'none';
+  $('out-body').style.display=t.dataset.p==='out'?'block':'none';
+}));
+
+// ── RIGHT TABS ─────────────────────────────────────────────────────────────
+document.querySelectorAll('.right-tab').forEach(t=>t.addEventListener('click',()=>{
+  document.querySelectorAll('.right-tab').forEach(x=>x.classList.remove('active'));
+  t.classList.add('active');
+  $('assess-panel').style.display=t.dataset.r==='assess'?'block':'none';
+  $('config-panel').style.display=t.dataset.r==='config'?'block':'none';
+}));
+
+// ── ASSESSMENT ─────────────────────────────────────────────────────────────
+const QUESTIONS = [
+  { id:'industry', label:'What industry are you in?',
+    sub:'We use this to tailor the recommendations to your sector.',
+    type:'single', options:[
+      {v:'mfg',l:'Manufacturing'},{v:'retail',l:'Retail & E-commerce'},
+      {v:'fs',l:'Financial Services'},{v:'hc',l:'Healthcare'},
+      {v:'ps',l:'Professional Services'},{v:'gov',l:'Public Sector'},{v:'other',l:'Other / Mixed'}]},
+  { id:'size', label:'How large is your organisation?',
+    sub:'Helps us size the agent deployment appropriately.',
+    type:'single', options:[
+      {v:'micro',l:'Under 50 employees'},{v:'small',l:'50 – 250 employees'},
+      {v:'mid',l:'250 – 2,500 employees'},{v:'enterprise',l:'Over 2,500 employees'}]},
+  { id:'ops', label:'Which operations does your team run day to day?',
+    sub:'Select all that apply.',
+    type:'multi', options:[
+      {v:'buying and procurement',l:'Buying & procurement'},
+      {v:'sales and quoting',l:'Sales & quoting'},
+      {v:'manufacturing or production',l:'Manufacturing or production'},
+      {v:'field service or maintenance',l:'Field service & maintenance'},
+      {v:'project delivery',l:'Project delivery'},
+      {v:'finance and reporting',l:'Finance & reporting'},
+      {v:'hr and workforce',l:'HR & workforce management'},
+      {v:'customer service',l:'Customer service & cases'},
+      {v:'marketing and campaigns',l:'Marketing & campaigns'},
+      {v:'logistics and warehousing',l:'Logistics & warehousing'}]},
+  { id:'pains', label:'Where are your biggest operational pain points?',
+    sub:'Pick up to three.',
+    type:'multi', max:3, options:[
+      {v:'too much manual data entry',l:'Too much manual data entry'},
+      {v:'slow approvals and workflows',l:'Slow approvals & workflows'},
+      {v:'poor visibility across teams',l:'Poor visibility across teams'},
+      {v:'high cost of operations',l:'High cost of operations'},
+      {v:'slow customer response times',l:'Slow customer response times'},
+      {v:'compliance and audit risk',l:'Compliance & audit risk'},
+      {v:'inventory and supply issues',l:'Inventory & supply issues'},
+      {v:'project overruns',l:'Project overruns & margin pressure'}]},
+  { id:'aiready', label:'Where are you on AI adoption?',
+    sub:'Helps us set realistic timelines and complexity.',
+    type:'single', options:[
+      {v:'exploring',l:'Exploring — no AI in production yet'},
+      {v:'piloting',l:'Piloting — one or two tools in use'},
+      {v:'scaling',l:'Scaling — AI across several teams'},
+      {v:'advanced',l:'Advanced — AI-first operations'}]},
+  { id:'oversight', label:'How much human oversight do you need on automated decisions?',
+    sub:'You can adjust this per process later.',
+    type:'single', options:[
+      {v:'full-auto',l:'Fully automated — agents act independently'},
+      {v:'human-loop',l:'Human-in-loop — approve before action'},
+      {v:'human-on',l:'Human-on-loop — review after action'},
+      {v:'manual',l:'Manual approval — agents recommend only'}]},
+];
+
+function mapProcesses(d){
+  const always=['p99','p55','p90'];
+  const byInd={mfg:['p70','p60','p10','p75','p50','p65','p95','p80'],retail:['p65','p60','p30','p75','p40','p50','p20','p85'],fs:['p65','p90','p85','p30','p20','p80','p75','p50'],hc:['p95','p20','p10','p55','p75','p90','p50','p30'],ps:['p80','p85','p65','p20','p30','p75','p50','p40'],gov:['p90','p20','p75','p80','p55','p50','p95','p10']};
+  const byOps={'buying and procurement':['p75','p60'],'sales and quoting':['p85','p65'],'manufacturing or production':['p70','p60','p10'],'field service or maintenance':['p95','p10'],'project delivery':['p80','p65'],'finance and reporting':['p90','p65'],'hr and workforce':['p55'],'customer service':['p20','p95'],'marketing and campaigns':['p30','p40'],'logistics and warehousing':['p60','p75']};
+  const byPain={'too much manual data entry':['p90','p65','p75'],'slow approvals and workflows':['p75','p80','p65'],'poor visibility across teams':['p50','p90','p80'],'high cost of operations':['p75','p55','p70'],'slow customer response times':['p20','p95','p85'],'compliance and audit risk':['p90','p99','p55'],'inventory and supply issues':['p60','p75','p70'],'project overruns':['p80','p50']};
+  const sizeLimit={micro:4,small:6,mid:9,enterprise:15}[d.size]||9;
+  let scored={};
+  const add=(ids,w)=>ids.forEach(id=>{scored[id]=(scored[id]||0)+w;});
+  add(always,3);
+  add(byInd[d.industry]||[],2);
+  (d.ops||[]).forEach(op=>add(byOps[op]||[],3));
+  (d.pains||[]).forEach(p=>add(byPain[p]||[],4));
+  return Object.entries(scored).sort((a,b)=>b[1]-a[1]).slice(0,sizeLimit)
+    .map(([id,score])=>({id,score,proc:DATA.PROCESSES.find(p=>p.id===id)})).filter(x=>x.proc);
+}
+
+function renderAssess(){
+  const total=QUESTIONS.length;
+  if(assessStep===0){
+    $('assess-panel').innerHTML=`
+      <div style="padding:6px 0 14px">
+        <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:6px">Tell us about your business</div>
+        <div style="font-size:11px;color:var(--muted);line-height:1.6;margin-bottom:14px">Answer six short questions about your organisation and operations. We will recommend the right AI agents and processes — no need to know the Microsoft catalog upfront.</div>
+        <button class="a-btn" onclick="assessStep=1;renderAssess()">Start assessment</button>
+      </div>`;
+    return;
+  }
+  if(assessStep>total){renderAssessResult();return;}
+  const q=QUESTIONS[assessStep-1];
+  const curVal=assessData[q.id];
+  const isMulti=q.type==='multi';
+  $('assess-panel').innerHTML=`
+    <div class="assess-progress">
+      <div class="ap-bar"><div class="ap-fill" style="width:${Math.round(((assessStep-1)/total)*100)}%"></div></div>
+      <div class="ap-label">Question ${assessStep} of ${total}</div>
+    </div>
+    <div class="a-q">${q.label}</div>
+    <div class="a-sub">${q.sub}</div>
+    <div class="a-pills" id="q-pills">
+      ${q.options.map(o=>{
+        const sel=isMulti?(Array.isArray(curVal)&&curVal.includes(o.v)):curVal===o.v;
+        return `<div class="a-pill${sel?' sel':''}" data-v="${o.v}">${o.l}</div>`;
+      }).join('')}
+    </div>
+    <div style="display:flex;gap:8px;margin-top:6px;align-items:center">
+      ${assessStep>1?'<button class="a-back" onclick="assessStep--;renderAssess()">Back</button>':''}
+      <button class="a-btn" onclick="aNext()">${assessStep===total?'Show recommendations':'Next'}</button>
+    </div>`;
+  document.querySelectorAll('#q-pills .a-pill').forEach(pill=>{
+    pill.addEventListener('click',()=>{
+      if(isMulti){
+        const max=q.max||99;
+        const already=pill.classList.contains('sel');
+        const selCount=document.querySelectorAll('#q-pills .sel').length;
+        if(!already&&selCount>=max)return;
+        pill.classList.toggle('sel');
+        assessData[q.id]=[...document.querySelectorAll('#q-pills .sel')].map(x=>x.dataset.v);
+      } else {
+        document.querySelectorAll('#q-pills .sel').forEach(x=>x.classList.remove('sel'));
+        pill.classList.add('sel');
+        assessData[q.id]=pill.dataset.v;
+      }
+    });
+  });
+}
+
+function aNext(){
+  const q=QUESTIONS[assessStep-1];
+  const val=assessData[q.id];
+  const ok=q.type==='multi'?(Array.isArray(val)&&val.length>0):!!val;
+  if(!ok){
+    const el=document.querySelector('#q-pills');
+    if(el){el.style.outline='1px solid #f75c5c';el.style.borderRadius='4px';setTimeout(()=>{el.style.outline='none';},1200);}
+    return;
+  }
+  assessStep++;
+  renderAssess();
+}
+
+function renderAssessResult(){
+  const recs=mapProcesses(assessData);
+  const col=ind().color;
+  const n=recs.length;
+  const sizeMul={micro:1,small:2,mid:4,enterprise:8}[assessData.size]||3;
+  const aiMul={exploring:1,piloting:1.5,scaling:2,advanced:3}[assessData.aiready]||1.5;
+  const agents=Math.round(n*4*Math.min(aiMul,2));
+  const monthly=Math.round(n*sizeMul*280);
+  const setup=Math.round(n*sizeMul*3800);
+  const phase1=recs.slice(0,2).map(r=>r.proc.name);
+  const phase2=recs.slice(2,5).map(r=>r.proc.name);
+  const phase3=recs.slice(5).map(r=>r.proc.name);
+  const indLabel=DATA.INDUSTRIES.find(i=>i.id===assessData.industry)?.name||'Your industry';
+  $('assess-panel').innerHTML=`
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+      <div style="font-size:12px;font-weight:600;color:var(--text)">Your AI process roadmap</div>
+      <button class="a-back" onclick="assessStep=0;assessData={};renderAssess()">Start over</button>
+    </div>
+    <div style="background:var(--surface2);border-radius:5px;padding:9px 11px;margin-bottom:10px;border:1px solid var(--border)">
+      <div style="font-size:10px;color:var(--muted);margin-bottom:2px;font-family:var(--mono);text-transform:uppercase;letter-spacing:.06em">${indLabel} · ${assessData.size||''}</div>
+      <div style="font-size:11px;color:var(--muted);line-height:1.6">Based on your operations and pain points, we identified <strong style="color:var(--text)">${n} process domains</strong> where agentic AI will have the highest impact.</div>
+    </div>
+    <div class="ar-grid" style="margin-bottom:10px">
+      <div class="ar-metric"><div class="arv" style="color:${col}">${agents}</div><div class="arl">Agents</div></div>
+      <div class="ar-metric"><div class="arv" style="color:${col}">€${(monthly/1000).toFixed(0)}K</div><div class="arl">/ month</div></div>
+      <div class="ar-metric"><div class="arv" style="color:${col}">€${(setup/1000).toFixed(0)}K</div><div class="arl">setup</div></div>
+    </div>
+    <div style="margin-bottom:10px">
+      <div class="ar-check-title" style="margin-bottom:6px">Recommended processes — ranked by impact</div>
+      ${recs.map((r,i)=>`
+        <div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border)">
+          <div style="width:18px;height:18px;border-radius:3px;background:${i<2?col:'var(--surface2)'};display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:${i<2?'#000':'var(--muted)'};flex-shrink:0;font-family:var(--mono)">${i+1}</div>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:11px;font-weight:600;color:var(--text)">${r.proc.name}</div>
+            <div style="font-size:10px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${r.proc.desc.split('.')[0]}</div>
+          </div>
+          <div style="font-size:9px;font-family:var(--mono);color:var(--muted);flex-shrink:0">${r.proc.num}</div>
+        </div>`).join('')}
+    </div>
+    <div class="ar-phases" style="margin-bottom:10px">
+      <strong>Phase 1 (0–3 mo):</strong> ${phase1.join(', ')}<br>
+      ${phase2.length?`<strong>Phase 2 (3–6 mo):</strong> ${phase2.join(', ')}<br>`:''}
+      ${phase3.length?`<strong>Phase 3 (6–12 mo):</strong> ${phase3.join(', ')}<br>`:''}
+      <strong>Oversight model:</strong> ${assessData.oversight||'—'}
+    </div>
+    <div class="ar-check">
+      <div class="ar-check-title">Preparation checklist</div>
+      <ul>
+        <li>D365 API credentials and environment access</li>
+        <li>Process owner sign-off per domain</li>
+        <li>Data quality baseline completed</li>
+        <li>Azure AI Foundry subscription provisioned</li>
+        <li>Change management plan in place</li>
+        <li>Governance and escalation matrix defined</li>
+      </ul>
+    </div>`;
+}
+
+// ── CONFIG PANEL ───────────────────────────────────────────────────────────
+function renderConfig(){
+  $('config-panel').innerHTML=`
+    <div class="cfg-section">
+      <div class="cfg-label">Model</div>
+      <div class="cfg-pills">
+        ${['claude-opus-4-5','claude-sonnet-4-5','claude-haiku-4-5','claude-opus-4-0','claude-sonnet-4-0','gpt-4o','gpt-4o-mini','gpt-4-turbo','gemini-2.0-flash','gemini-1.5-pro'].map(m=>`
+          <div class="cfg-pill${cfgState.model===m?' sel':''}" data-t="model" data-v="${m}">${m}</div>`).join('')}
+      </div>
+    </div>
+    <div class="cfg-section">
+      <div class="cfg-label">Agent Mode</div>
+      <div class="cfg-pills">
+        ${['Agentic','Supervised','Batch'].map(m=>`
+          <div class="cfg-pill${cfgState.mode===m?' sel':''}" data-t="mode" data-v="${m}">${m}</div>`).join('')}
+      </div>
+    </div>
+    <div class="cfg-section">
+      <div class="cfg-label">Data Sources</div>
+      <div class="cfg-pills">
+        ${['D365','SharePoint','Dataverse','Azure SQL','SAP','Blob Storage'].map(s=>`
+          <div class="cfg-pill${(cfgState.sources||[]).includes(s)?' sel':''}" data-t="source" data-v="${s}">${s}</div>`).join('')}
+      </div>
+    </div>
+    <div class="cfg-section">
+      <div class="cfg-label">Azure Endpoint</div>
+      <input class="cfg-input" id="az-ep" placeholder="https://your-resource.openai.azure.com/" value="${cfgState.endpoint||''}">
+      <div class="cfg-label">Resource Group</div>
+      <input class="cfg-input" id="az-rg" placeholder="rg-agentic-bpc-prod" value="${cfgState.rg||''}">
+    </div>
+    <button class="cfg-gen" id="cfg-gen-btn" onclick="genConfig()">Generate AI Foundry Config</button>
+    <div id="cfg-out"></div>
+    <div class="cfg-actions" id="cfg-acts" style="display:none">
+      <button class="cfg-act" onclick="copyYaml()">Copy YAML</button>
+      <button class="cfg-act" onclick="dlYaml()">Download</button>
+    </div>`;
+
+  document.querySelectorAll('#config-panel .cfg-pill').forEach(pill=>{
+    pill.addEventListener('click',()=>{
+      const {t,v}=pill.dataset;
+      if(t==='model'){cfgState.model=v;document.querySelectorAll('[data-t="model"]').forEach(x=>x.classList.remove('sel'));pill.classList.add('sel');}
+      else if(t==='mode'){cfgState.mode=v;document.querySelectorAll('[data-t="mode"]').forEach(x=>x.classList.remove('sel'));pill.classList.add('sel');}
+      else if(t==='source'){pill.classList.toggle('sel');cfgState.sources=[...document.querySelectorAll('[data-t="source"].sel')].map(x=>x.dataset.v);}
+    });
+  });
+}
+
+async function genConfig(){
+  const p=proc(), i=ind();
+  const btn=$('cfg-gen-btn'), out=$('cfg-out');
+  cfgState.endpoint=$('az-ep')?.value||'';
+  cfgState.rg=$('az-rg')?.value||'';
+  btn.disabled=true; btn.textContent='Generating...';
+  out.style.display='block'; out.textContent='Calling Claude API...';
+
+  const prompt=`Generate a production Azure AI Foundry YAML config for:
+Process: ${p.num} - ${p.name}
+Industry: ${i.name}
+Model: ${cfgState.model}
+Mode: ${cfgState.mode}
+Data sources: ${(cfgState.sources||[]).join(', ')}
+Agents: ${p.agents.map(a=>a.label).join(', ')}
+Steps: ${steps().map(s=>s.name).join(', ')}
+Return ONLY valid YAML with: project metadata, agent definitions (role, model, tools, guardrails), data_sources, orchestration, monitoring, audit_log, managed_identity, spend_threshold. No explanation, no markdown fences.`;
+
+  try{
+    const res=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({model:'claude-sonnet-4-5',max_tokens:1000,messages:[{role:'user',content:prompt}]})
+    });
+    const data=await res.json();
+    const text=(data.content||[]).map(c=>c.text||'').join('').replace(/```ya?ml|```/gi,'').trim();
+    out.textContent=text;
+    $('cfg-acts').style.display='flex';
+    window._yaml=text;
+  } catch(e){ out.textContent='Error: '+e.message; }
+  btn.disabled=false; btn.textContent='Generate AI Foundry Config';
+}
+
+function copyYaml(){ navigator.clipboard.writeText(window._yaml||'').then(()=>alert('Copied!')); }
+function dlYaml(){
+  const a=document.createElement('a');
+  a.href='data:text/yaml;charset=utf-8,'+encodeURIComponent(window._yaml||'');
+  a.download=`bpc-${curProc}-${curInd}.yaml`;
+  a.click();
+}
+
+// ── RENDER ALL ─────────────────────────────────────────────────────────────
+function renderMain(){
+  renderHeader();
+  renderArch();
+  renderSteps();
+  assessStep=0; assessData={};
+  renderAssess();
+  renderConfig();
+}
+
+function init(){
+  setColor(ind().color);
+  buildIndTabs();
+  buildSidebar();
+  renderMain();
+}
+
+init();
+</script>
+</body>
+</html>

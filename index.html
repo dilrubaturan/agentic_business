@@ -3,186 +3,219 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Agentic BPC Framework — Microsoft Dynamics 365</title>
+<title>Agentic BPC Framework</title>
 <style>
 :root{
   --bg:#0a0c10;--surface:#11141a;--surface2:#181c24;--border:#232836;
-  --text:#e8eaf0;--muted:#6b7280;--accent:#4f8ef7;
-  --green:#1edb8b;--amber:#f5a623;--purple:#b57af7;
-  --teal:#5ce6c8;--red:#f75c5c;--blue:#4f8ef7;
-  --radius:10px;--font:'DM Sans',system-ui,sans-serif;
+  --text:#e8eaf0;--muted:#6b7280;--radius:8px;
+  --font:'DM Sans',system-ui,sans-serif;--mono:'DM Mono',monospace;
+  --ic:#4f8ef7;
 }
 *{box-sizing:border-box;margin:0;padding:0;}
-body{background:var(--bg);color:var(--text);font-family:var(--font);font-size:14px;min-height:100vh;display:flex;flex-direction:column;}
+body{background:var(--bg);color:var(--text);font-family:var(--font);font-size:13px;height:100vh;display:flex;flex-direction:column;overflow:hidden;}
+
 /* ── TOP BAR ── */
-#topbar{background:var(--surface);border-bottom:1px solid var(--border);padding:0 20px;display:flex;align-items:center;gap:16px;height:52px;flex-shrink:0;}
-#topbar .logo{font-family:'Syne',sans-serif;font-size:15px;font-weight:700;color:var(--accent);white-space:nowrap;}
-#topbar .sep{color:var(--border);font-size:18px;}
-#ind-tabs{display:flex;gap:4px;overflow-x:auto;scrollbar-width:none;}
+#topbar{background:var(--surface);border-bottom:1px solid var(--border);padding:0 16px;display:flex;align-items:center;gap:12px;height:48px;flex-shrink:0;}
+.logo{font-family:'Syne',sans-serif;font-size:14px;font-weight:700;color:var(--ic);white-space:nowrap;letter-spacing:.01em;}
+.sep{color:var(--border);font-size:16px;}
+#ind-tabs{display:flex;gap:3px;overflow-x:auto;scrollbar-width:none;}
 #ind-tabs::-webkit-scrollbar{display:none;}
-.ind-tab{display:flex;align-items:center;gap:6px;padding:6px 12px;border-radius:6px;cursor:pointer;white-space:nowrap;font-size:13px;color:var(--muted);border:1px solid transparent;transition:all .15s;background:transparent;}
+.ind-tab{display:flex;align-items:center;gap:5px;padding:5px 11px;border-radius:5px;cursor:pointer;white-space:nowrap;font-size:12px;color:var(--muted);border:1px solid transparent;transition:all .15s;}
 .ind-tab:hover{color:var(--text);background:var(--surface2);}
 .ind-tab.active{color:#fff;border-color:currentColor;background:color-mix(in srgb,currentColor 12%,transparent);}
-.ind-tab .ind-icon{font-size:15px;}
+
 /* ── LAYOUT ── */
 #main{display:flex;flex:1;overflow:hidden;}
-/* ── SIDEBAR ── */
-#sidebar{width:200px;flex-shrink:0;background:var(--surface);border-right:1px solid var(--border);overflow-y:auto;padding:12px 0;}
-#sidebar::-webkit-scrollbar{width:4px;}
+
+/* ── LEFT SIDEBAR (process list) ── */
+#sidebar{width:188px;flex-shrink:0;background:var(--surface);border-right:1px solid var(--border);overflow-y:auto;padding:8px 0;}
+#sidebar::-webkit-scrollbar{width:3px;}
 #sidebar::-webkit-scrollbar-thumb{background:var(--border);}
-.sidebar-label{font-size:10px;font-weight:600;letter-spacing:.08em;color:var(--muted);text-transform:uppercase;padding:8px 14px 4px;}
-.proc-btn{width:100%;text-align:left;background:none;border:none;color:var(--muted);cursor:pointer;padding:7px 14px;font-size:12.5px;font-family:var(--font);display:flex;align-items:center;gap:8px;transition:all .12s;border-left:3px solid transparent;}
+.sidebar-label{font-size:10px;font-weight:600;letter-spacing:.08em;color:var(--muted);text-transform:uppercase;padding:8px 12px 4px;}
+.proc-btn{width:100%;text-align:left;background:none;border:none;color:var(--muted);cursor:pointer;padding:6px 12px;font-size:12px;font-family:var(--font);display:flex;align-items:center;gap:7px;transition:all .12s;border-left:2px solid transparent;}
 .proc-btn:hover{color:var(--text);background:var(--surface2);}
-.proc-btn.active{color:var(--ind-color,var(--accent));border-left-color:var(--ind-color,var(--accent));background:color-mix(in srgb,var(--ind-color,var(--accent)) 8%,transparent);}
-.proc-btn .pnum{font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;}
-/* ── CONTENT AREA ── */
-#content{flex:1;overflow-y:auto;padding:20px;display:flex;flex-direction:column;gap:16px;}
-#content::-webkit-scrollbar{width:6px;}
-#content::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px;}
-/* ── PROCESS HEADER ── */
-#proc-header{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px 20px;}
-#proc-header .ph-top{display:flex;align-items:center;gap:12px;margin-bottom:8px;}
-#proc-header .ph-icon{font-size:24px;}
-#proc-header .ph-title{font-family:'Syne',sans-serif;font-size:18px;font-weight:700;}
-#proc-header .ph-num{font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);}
-#proc-header .ph-desc{color:var(--muted);font-size:13px;line-height:1.5;}
-#proc-header .ph-badge{display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;margin-bottom:8px;border:1px solid currentColor;}
-/* ── AGENT MAP ── */
-#agent-map{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px;}
-.am-title{font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);margin-bottom:12px;}
-.am-nodes{display:flex;align-items:center;gap:0;flex-wrap:wrap;gap:6px;}
-.am-node{display:flex;flex-direction:column;align-items:center;gap:4px;padding:8px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;min-width:80px;cursor:default;}
-.am-node.orchestrator{border-color:var(--ind-color,var(--accent));background:color-mix(in srgb,var(--ind-color,var(--accent)) 10%,transparent);}
-.am-node .an-icon{font-size:18px;}
-.am-node .an-label{font-size:10px;color:var(--muted);text-align:center;font-family:'DM Mono',monospace;}
-.am-arrow{color:var(--border);font-size:16px;flex-shrink:0;}
+.proc-btn.active{color:var(--ic);border-left-color:var(--ic);background:color-mix(in srgb,var(--ic) 8%,transparent);}
+.proc-btn .pnum{font-size:10px;color:var(--muted);font-family:var(--mono);margin-left:auto;}
+
+/* ── CENTRE (simulation) ── */
+#centre{flex:1;display:flex;flex-direction:column;min-width:0;overflow:hidden;}
+#centre-scroll{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px;}
+#centre-scroll::-webkit-scrollbar{width:4px;}
+#centre-scroll::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
+
+/* ── RIGHT PANEL (assess + config) ── */
+#right{width:320px;flex-shrink:0;background:var(--surface);border-left:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;}
+#right-tabs{display:flex;border-bottom:1px solid var(--border);flex-shrink:0;}
+.right-tab{flex:1;padding:10px 8px;font-size:11px;font-weight:600;cursor:pointer;color:var(--muted);border-bottom:2px solid transparent;text-align:center;transition:all .15s;user-select:none;letter-spacing:.03em;}
+.right-tab.active{color:var(--text);border-bottom-color:var(--ic);}
+#right-body{flex:1;overflow-y:auto;padding:14px;}
+#right-body::-webkit-scrollbar{width:3px;}
+#right-body::-webkit-scrollbar-thumb{background:var(--border);}
+
+/* ── PROC HEADER ── */
+#proc-header{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;}
+.ph-badge{display:inline-flex;align-items:center;gap:5px;padding:2px 9px;border-radius:20px;font-size:10px;font-weight:600;margin-bottom:6px;border:1px solid currentColor;font-family:var(--mono);}
+.ph-top{display:flex;align-items:center;gap:10px;margin-bottom:5px;}
+.ph-num{font-family:var(--mono);font-size:10px;color:var(--muted);}
+.ph-title{font-family:'Syne',sans-serif;font-size:16px;font-weight:700;}
+.ph-desc{color:var(--muted);font-size:12px;line-height:1.5;}
+
+/* ── AGENT ARCHITECTURE ── */
+#agent-arch{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;}
+.arch-label{font-size:10px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);margin-bottom:12px;}
+.arch-svg-wrap{width:100%;overflow:visible;}
+.arch-node-box{fill:var(--surface2);stroke:var(--border);stroke-width:1;}
+.arch-node-box.orch{fill:color-mix(in srgb,var(--ic) 10%,#11141a);stroke:var(--ic);}
+.arch-node-label{font-family:'DM Mono',monospace;font-size:10px;fill:#6b7280;}
+.arch-node-title{font-family:'DM Sans',system-ui;font-size:11px;font-weight:600;fill:#e8eaf0;}
+.arch-connector{stroke:var(--border);stroke-width:1;fill:none;}
+.arch-connector.active{stroke:var(--ic);opacity:.5;}
+
 /* ── RUN BAR ── */
-#run-bar{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:12px 16px;display:flex;align-items:center;gap:12px;}
-#run-btn{display:flex;align-items:center;gap:8px;padding:8px 18px;background:var(--ind-color,var(--accent));color:#fff;border:none;border-radius:6px;font-family:var(--font);font-size:13px;font-weight:600;cursor:pointer;transition:opacity .15s;}
+#run-bar{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:10px 14px;display:flex;align-items:center;gap:10px;}
+#run-btn{display:flex;align-items:center;gap:6px;padding:7px 16px;background:var(--ic);color:#fff;border:none;border-radius:5px;font-family:var(--font);font-size:12px;font-weight:600;cursor:pointer;transition:opacity .15s;white-space:nowrap;}
 #run-btn:hover{opacity:.85;}
-#run-btn:disabled{opacity:.5;cursor:not-allowed;}
-#prog-bar-wrap{flex:1;height:6px;background:var(--surface2);border-radius:3px;overflow:hidden;}
-#prog-bar{height:100%;width:0;background:var(--ind-color,var(--accent));border-radius:3px;transition:width .3s;}
-#prog-label{font-size:12px;color:var(--muted);font-family:'DM Mono',monospace;white-space:nowrap;}
+#run-btn:disabled{opacity:.45;cursor:not-allowed;}
+#prog-wrap{flex:1;height:4px;background:var(--surface2);border-radius:2px;overflow:hidden;}
+#prog-bar{height:100%;width:0;background:var(--ic);border-radius:2px;transition:width .3s;}
+#prog-label{font-size:11px;color:var(--muted);font-family:var(--mono);white-space:nowrap;}
+
 /* ── STEPS GRID ── */
-#steps-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
-@media(max-width:900px){#steps-grid{grid-template-columns:1fr;}}
-.step-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px;transition:border-color .2s,opacity .3s;}
-.step-card.running{border-color:var(--ind-color,var(--accent));background:color-mix(in srgb,var(--ind-color,var(--accent)) 5%,var(--surface));}
-.step-card.done{border-color:color-mix(in srgb,var(--ind-color,var(--accent)) 40%,transparent);}
-.step-card.pending{opacity:.45;}
-.sc-top{display:flex;align-items:center;gap:8px;margin-bottom:8px;}
-.sc-icon{font-size:18px;}
-.sc-name{font-weight:600;font-size:13px;}
-.sc-num{font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);}
+#steps-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.step-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:12px;transition:border-color .2s;}
+.step-card.running{border-color:var(--ic);}
+.step-card.done{border-color:color-mix(in srgb,var(--ic) 35%,transparent);}
+.step-card.pending{opacity:.4;}
+.sc-top{display:flex;align-items:flex-start;gap:8px;margin-bottom:6px;}
+.sc-meta{flex:1;}
+.sc-num{font-family:var(--mono);font-size:10px;color:var(--muted);}
+.sc-name{font-weight:600;font-size:12px;color:var(--text);line-height:1.3;}
 .sc-agent{font-size:11px;color:var(--muted);margin-bottom:6px;}
-.sc-agent span{color:var(--ind-color,var(--accent));}
-.sc-output{font-size:12px;color:var(--muted);line-height:1.5;border-top:1px solid var(--border);padding-top:8px;display:none;}
+.sc-agent em{color:var(--ic);font-style:normal;}
+.sc-output{font-size:11.5px;color:var(--muted);line-height:1.55;border-top:1px solid var(--border);padding-top:7px;display:none;}
 .step-card.done .sc-output,.step-card.running .sc-output{display:block;}
-.sc-status{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-family:'DM Mono',monospace;}
-.sc-status.running{color:var(--amber);}
-.sc-status.done{color:var(--green);}
-/* ── BOTTOM PANELS ── */
-#bottom-panels{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;}
-.panel-tabs{display:flex;border-bottom:1px solid var(--border);}
-.panel-tab{padding:10px 18px;font-size:12px;font-weight:600;cursor:pointer;color:var(--muted);border-bottom:2px solid transparent;transition:all .15s;user-select:none;}
-.panel-tab.active{color:var(--text);border-bottom-color:var(--ind-color,var(--accent));}
-.panel-body{padding:16px;min-height:180px;}
-/* LOG */
-#log-body{font-family:'DM Mono',monospace;font-size:11.5px;color:var(--green);line-height:1.8;}
-.log-line{margin:0;}
+.sc-badge{display:inline-flex;align-items:center;gap:3px;font-size:10px;font-family:var(--mono);padding:1px 6px;border-radius:3px;}
+.sc-badge.running{background:color-mix(in srgb,#f5a623 15%,transparent);color:#f5a623;}
+.sc-badge.done{background:color-mix(in srgb,#1edb8b 15%,transparent);color:#1edb8b;}
+
+/* ── BOTTOM PANELS (log + output) ── */
+#bottom{background:var(--surface);border-top:1px solid var(--border);flex-shrink:0;}
+.bot-tabs{display:flex;border-bottom:1px solid var(--border);}
+.bot-tab{padding:8px 16px;font-size:11px;font-weight:600;cursor:pointer;color:var(--muted);border-bottom:2px solid transparent;transition:all .15s;user-select:none;letter-spacing:.03em;}
+.bot-tab.active{color:var(--text);border-bottom-color:var(--ic);}
+.bot-body{padding:12px;max-height:160px;overflow-y:auto;font-size:11.5px;}
+.bot-body::-webkit-scrollbar{width:3px;}
+.bot-body::-webkit-scrollbar-thumb{background:var(--border);}
+#log-body{font-family:var(--mono);color:#1edb8b;line-height:1.8;}
 .log-ts{color:var(--muted);}
-/* OUTPUT */
-#output-body{font-size:13px;line-height:1.6;color:var(--muted);}
-#output-body .out-item{margin-bottom:10px;padding:10px;background:var(--surface2);border-radius:6px;border-left:3px solid var(--ind-color,var(--accent));}
-#output-body .out-step{font-weight:600;color:var(--text);font-size:12px;margin-bottom:4px;}
-/* ASSESS */
-#assess-body{}
-.assess-steps{display:flex;gap:0;margin-bottom:16px;}
-.assess-step-dot{width:28px;height:28px;border-radius:50%;border:2px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--muted);flex-shrink:0;cursor:pointer;}
-.assess-step-dot.active{border-color:var(--ind-color,var(--accent));color:var(--ind-color,var(--accent));background:color-mix(in srgb,var(--ind-color,var(--accent)) 15%,transparent);}
-.assess-step-dot.done{border-color:var(--green);background:var(--green);color:#000;}
-.assess-line{flex:1;height:2px;background:var(--border);align-self:center;margin:0 4px;}
-.assess-form{display:none;}
-.assess-form.active{display:block;}
-.assess-q{font-weight:600;font-size:13px;margin-bottom:10px;color:var(--text);}
-.assess-pills{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px;}
-.assess-pill{padding:6px 14px;border-radius:20px;border:1px solid var(--border);font-size:12px;cursor:pointer;color:var(--muted);transition:all .15s;}
-.assess-pill:hover{border-color:var(--ind-color,var(--accent));color:var(--text);}
-.assess-pill.sel{border-color:var(--ind-color,var(--accent));background:color-mix(in srgb,var(--ind-color,var(--accent)) 15%,transparent);color:var(--text);}
-.assess-input{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:8px 12px;color:var(--text);font-family:var(--font);font-size:13px;margin-bottom:12px;}
-.assess-input:focus{outline:none;border-color:var(--ind-color,var(--accent));}
-.assess-btn{padding:8px 18px;background:var(--ind-color,var(--accent));color:#fff;border:none;border-radius:6px;font-family:var(--font);font-size:13px;font-weight:600;cursor:pointer;}
-.assess-result{background:var(--surface2);border-radius:8px;padding:16px;border:1px solid var(--border);}
-.ar-title{font-weight:700;font-size:14px;margin-bottom:12px;color:var(--text);}
-.ar-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:12px;}
-.ar-metric{background:var(--surface);border-radius:6px;padding:10px;text-align:center;}
-.ar-metric .arv{font-size:20px;font-weight:700;color:var(--ind-color,var(--accent));font-family:'DM Mono',monospace;}
-.ar-metric .arl{font-size:10px;color:var(--muted);margin-top:2px;}
-.ar-phases{font-size:12px;color:var(--muted);line-height:1.7;}
-.ar-check{margin-top:10px;}
-.ar-check-title{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;}
-.ar-check ul{list-style:none;font-size:12px;color:var(--muted);}
-.ar-check ul li::before{content:"✓ ";color:var(--green);}
-/* CONFIG */
-#config-body{}
-.cfg-pills-row{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;}
-.cfg-pill{padding:4px 12px;border-radius:20px;border:1px solid var(--border);font-size:11px;cursor:pointer;color:var(--muted);transition:all .15s;}
-.cfg-pill.sel{border-color:var(--ind-color,var(--accent));background:color-mix(in srgb,var(--ind-color,var(--accent)) 15%,transparent);color:var(--text);}
-.cfg-section-label{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin-bottom:6px;}
-.cfg-input{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:7px 11px;color:var(--text);font-family:var(--font);font-size:12px;margin-bottom:8px;}
-.cfg-input:focus{outline:none;border-color:var(--ind-color,var(--accent));}
-.cfg-gen-btn{padding:8px 16px;background:var(--ind-color,var(--accent));color:#fff;border:none;border-radius:6px;font-family:var(--font);font-size:12px;font-weight:600;cursor:pointer;margin-bottom:12px;}
-#cfg-output{background:#0d0f14;border:1px solid var(--border);border-radius:6px;padding:12px;font-family:'DM Mono',monospace;font-size:11px;color:var(--green);white-space:pre-wrap;max-height:220px;overflow-y:auto;display:none;}
-.cfg-actions{display:flex;gap:8px;margin-top:8px;}
-.cfg-act-btn{padding:6px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:11px;cursor:pointer;font-family:var(--font);}
-/* SCROLLBAR */
-::-webkit-scrollbar{width:5px;height:5px;}
-::-webkit-scrollbar-track{background:transparent;}
-::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px;}
+#out-body{color:var(--muted);line-height:1.6;}
+.out-item{margin-bottom:8px;padding:8px 10px;background:var(--surface2);border-radius:5px;border-left:2px solid var(--ic);}
+.out-step{font-weight:600;color:var(--text);font-size:11px;margin-bottom:3px;}
+
+/* ── ASSESS PANEL (right) ── */
+.r-section{margin-bottom:16px;}
+.r-title{font-size:10px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;}
+.assess-dots{display:flex;align-items:center;margin-bottom:14px;}
+.a-dot{width:24px;height:24px;border-radius:50%;border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:var(--muted);flex-shrink:0;cursor:pointer;font-family:var(--mono);}
+.a-dot.active{border-color:var(--ic);color:var(--ic);}
+.a-dot.done{border-color:#1edb8b;background:#1edb8b;color:#000;}
+.a-line{flex:1;height:1px;background:var(--border);margin:0 3px;}
+.a-form{display:none;}
+.a-form.active{display:block;}
+.a-q{font-weight:600;font-size:12px;margin-bottom:8px;color:var(--text);}
+.a-pills{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:10px;}
+.a-pill{padding:4px 10px;border-radius:4px;border:1px solid var(--border);font-size:11px;cursor:pointer;color:var(--muted);transition:all .15s;}
+.a-pill:hover{border-color:var(--ic);color:var(--text);}
+.a-pill.sel{border-color:var(--ic);background:color-mix(in srgb,var(--ic) 12%,transparent);color:var(--text);}
+.a-input{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:5px;padding:6px 10px;color:var(--text);font-family:var(--font);font-size:12px;margin-bottom:10px;}
+.a-input:focus{outline:none;border-color:var(--ic);}
+.a-btn{padding:7px 14px;background:var(--ic);color:#fff;border:none;border-radius:5px;font-family:var(--font);font-size:12px;font-weight:600;cursor:pointer;}
+.a-result{background:var(--surface2);border-radius:6px;padding:12px;border:1px solid var(--border);margin-top:10px;}
+.ar-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px;}
+.ar-metric{background:var(--surface);border-radius:5px;padding:8px;text-align:center;}
+.arv{font-size:18px;font-weight:700;color:var(--ic);font-family:var(--mono);}
+.arl{font-size:9px;color:var(--muted);margin-top:1px;}
+.ar-phases{font-size:11px;color:var(--muted);line-height:1.7;margin-bottom:8px;}
+.ar-check-title{font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;}
+.ar-check ul{list-style:none;font-size:11px;color:var(--muted);}
+.ar-check li::before{content:"+ ";color:#1edb8b;}
+.assess-progress{margin-bottom:12px;}
+.ap-bar{height:3px;background:var(--surface2);border-radius:2px;overflow:hidden;margin-bottom:5px;}
+.ap-fill{height:100%;background:var(--ic);border-radius:2px;transition:width .3s;}
+.ap-label{font-size:10px;color:var(--muted);font-family:var(--mono);}
+.a-sub{font-size:11px;color:var(--muted);margin-bottom:8px;line-height:1.5;}
+.a-back{padding:6px 11px;background:transparent;border:1px solid var(--border);border-radius:5px;color:var(--muted);font-family:var(--font);font-size:11px;cursor:pointer;}
+.a-back:hover{color:var(--text);border-color:var(--muted);}
+
+/* ── CONFIG PANEL (right) ── */
+.cfg-section{margin-bottom:12px;}
+.cfg-label{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin-bottom:6px;}
+.cfg-pills{display:flex;flex-wrap:wrap;gap:4px;}
+.cfg-pill{padding:3px 9px;border-radius:4px;border:1px solid var(--border);font-size:11px;cursor:pointer;color:var(--muted);transition:all .15s;font-family:var(--mono);}
+.cfg-pill.sel{border-color:var(--ic);background:color-mix(in srgb,var(--ic) 12%,transparent);color:var(--text);}
+.cfg-input{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:5px;padding:6px 10px;color:var(--text);font-family:var(--font);font-size:11px;margin-bottom:6px;}
+.cfg-input:focus{outline:none;border-color:var(--ic);}
+.cfg-gen{padding:7px 14px;background:var(--ic);color:#fff;border:none;border-radius:5px;font-family:var(--font);font-size:12px;font-weight:600;cursor:pointer;width:100%;margin-bottom:8px;}
+.cfg-gen:disabled{opacity:.5;cursor:not-allowed;}
+#cfg-out{background:#080a0e;border:1px solid var(--border);border-radius:5px;padding:10px;font-family:var(--mono);font-size:10.5px;color:#1edb8b;white-space:pre-wrap;max-height:200px;overflow-y:auto;display:none;margin-bottom:6px;}
+.cfg-actions{display:flex;gap:6px;}
+.cfg-act{padding:5px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:4px;color:var(--text);font-size:11px;cursor:pointer;font-family:var(--font);}
+::-webkit-scrollbar{width:4px;height:4px;}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
 </style>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700&family=DM+Sans:wght@400;600&family=DM+Mono&display=swap" rel="stylesheet">
 </head>
 <body>
 
-<!-- TOP BAR -->
 <div id="topbar">
-  <span class="logo">⚡ Agentic BPC</span>
+  <span class="logo">Agentic BPC</span>
   <span class="sep">|</span>
   <div id="ind-tabs"></div>
 </div>
 
-<!-- MAIN -->
 <div id="main">
+
+  <!-- LEFT: process list -->
   <div id="sidebar">
     <div class="sidebar-label">Process Domains</div>
     <div id="proc-list"></div>
   </div>
-  <div id="content">
-    <div id="proc-header"></div>
-    <div id="agent-map"></div>
-    <div id="run-bar">
-      <button id="run-btn">▶ Run Simulation</button>
-      <div id="prog-bar-wrap"><div id="prog-bar"></div></div>
-      <span id="prog-label">Ready</span>
+
+  <!-- CENTRE: simulation -->
+  <div id="centre">
+    <div id="centre-scroll">
+      <div id="proc-header"></div>
+      <div id="agent-arch"></div>
+      <div id="run-bar">
+        <button id="run-btn">Run Simulation</button>
+        <div id="prog-wrap"><div id="prog-bar"></div></div>
+        <span id="prog-label">Ready</span>
+      </div>
+      <div id="steps-grid"></div>
     </div>
-    <div id="steps-grid"></div>
-    <div id="bottom-panels">
-      <div class="panel-tabs">
-        <div class="panel-tab active" data-panel="log">📋 Log</div>
-        <div class="panel-tab" data-panel="output">📤 Output</div>
-        <div class="panel-tab" data-panel="assess">🎯 Assess</div>
-        <div class="panel-tab" data-panel="config">⚙️ AI Foundry Config</div>
+    <div id="bottom">
+      <div class="bot-tabs">
+        <div class="bot-tab active" data-p="log">Agent Log</div>
+        <div class="bot-tab" data-p="out">Run Output</div>
       </div>
-      <div class="panel-body">
-        <div id="log-body">Awaiting simulation run...</div>
-        <div id="output-body" style="display:none"></div>
-        <div id="assess-body" style="display:none"></div>
-        <div id="config-body" style="display:none"></div>
-      </div>
+      <div class="bot-body" id="log-body">Awaiting simulation run...</div>
+      <div class="bot-body" id="out-body" style="display:none"></div>
     </div>
   </div>
+
+  <!-- RIGHT: assess + config -->
+  <div id="right">
+    <div id="right-tabs">
+      <div class="right-tab active" data-r="assess">Assessment</div>
+      <div class="right-tab" data-r="config">AI Foundry Config</div>
+    </div>
+    <div id="right-body">
+      <div id="assess-panel"></div>
+      <div id="config-panel" style="display:none"></div>
+    </div>
+  </div>
+
 </div>
 
 <script>
@@ -193,43 +226,83 @@ let curInd = DATA.INDUSTRIES[0].id;
 let curProc = DATA.PROCESSES[0].id;
 let simRunning = false;
 let simTimer = null;
-let assessStep = 1;
+let assessStep = 0;  // 0=not started, 1-5=questions, 6=result
 let assessData = {};
+
+// ── PROCESS MAPPING LOGIC ──────────────────────────────────────────────────
+// Given discovery answers, return recommended process ids + rationale
+function mapProcesses(d){
+  const always = ['p99','p55','p90']; // always relevant
+  const byIndustry = {
+    mfg:    ['p70','p60','p10','p75','p50','p65','p95','p80'],
+    retail: ['p65','p60','p30','p75','p40','p50','p20','p85'],
+    fs:     ['p65','p90','p85','p30','p20','p80','p75','p50'],
+    hc:     ['p95','p20','p10','p55','p75','p90','p50','p30'],
+    ps:     ['p80','p85','p65','p20','p30','p75','p50','p40'],
+    gov:    ['p90','p20','p75','p80','p55','p50','p95','p10'],
+  };
+  const byOps = {
+    'buying and procurement':       ['p75','p60'],
+    'sales and quoting':            ['p85','p65'],
+    'manufacturing or production':  ['p70','p60','p10'],
+    'field service or maintenance': ['p95','p10'],
+    'project delivery':             ['p80','p65'],
+    'finance and reporting':        ['p90','p65'],
+    'hr and workforce':             ['p55'],
+    'customer service':             ['p20','p95'],
+    'marketing and campaigns':      ['p30','p40'],
+    'logistics and warehousing':    ['p60','p75'],
+  };
+  const byPain = {
+    'too much manual data entry':   ['p90','p65','p75'],
+    'slow approvals and workflows': ['p75','p80','p65'],
+    'poor visibility across teams': ['p50','p90','p80'],
+    'high cost of operations':      ['p75','p55','p70'],
+    'slow customer response times': ['p20','p95','p85'],
+    'compliance and audit risk':    ['p90','p99','p55'],
+    'inventory and supply issues':  ['p60','p75','p70'],
+    'project overruns':             ['p80','p50'],
+  };
+
+  let scored = {};
+  const add = (ids, weight) => ids.forEach(id=>{ scored[id]=(scored[id]||0)+weight; });
+
+  add(always, 3);
+  add(byIndustry[d.industry] || [], 2);
+  (d.ops||[]).forEach(op => add(byOps[op]||[], 3));
+  (d.pains||[]).forEach(pain => add(byPain[pain]||[], 4));
+
+  // size modifier — smaller companies use fewer agents
+  const sizeLimit = {micro:4, small:6, mid:9, enterprise:15}[d.size]||9;
+
+  return Object.entries(scored)
+    .sort((a,b)=>b[1]-a[1])
+    .slice(0, sizeLimit)
+    .map(([id,score])=>({id, score, proc: DATA.PROCESSES.find(p=>p.id===id)}))
+    .filter(x=>x.proc);
+}
 let cfgState = { model:'claude-sonnet-4-20250514', mode:'Agentic', sources:['D365','SharePoint'] };
 
-// ── HELPERS ────────────────────────────────────────────────────────────────
 const $ = id => document.getElementById(id);
-const indColor = () => DATA.INDUSTRIES.find(i=>i.id===curInd)?.color || '#4f8ef7';
-const curProcObj = () => DATA.PROCESSES.find(p=>p.id===curProc);
-const curSteps = () => {
-  const p = curProcObj();
-  return p?.industry?.[curInd]?.steps || p?.industry?.[Object.keys(p.industry)[0]]?.steps || [];
-};
-function setIndColor(c){
-  document.documentElement.style.setProperty('--ind-color', c);
-}
+const ind = () => DATA.INDUSTRIES.find(i=>i.id===curInd);
+const proc = () => DATA.PROCESSES.find(p=>p.id===curProc);
+const steps = () => { const p=proc(); return p?.industry?.[curInd]?.steps || p?.industry?.[Object.keys(p.industry)[0]]?.steps || []; };
+const setColor = c => document.documentElement.style.setProperty('--ic', c);
 
 // ── INDUSTRY TABS ──────────────────────────────────────────────────────────
 function buildIndTabs(){
-  const el = $('ind-tabs');
-  el.innerHTML = DATA.INDUSTRIES.map(ind=>`
-    <div class="ind-tab${ind.id===curInd?' active':''}" data-ind="${ind.id}" style="--tab-color:${ind.color}">
-      <span class="ind-icon">${ind.icon}</span>${ind.name}
+  const el=$('ind-tabs');
+  el.innerHTML=DATA.INDUSTRIES.map(i=>`
+    <div class="ind-tab${i.id===curInd?' active':''}" data-id="${i.id}" style="${i.id===curInd?'color:'+i.color+';border-color:'+i.color:''}">
+      ${i.name}
     </div>`).join('');
-  el.querySelectorAll('.ind-tab').forEach(t=>{
-    t.addEventListener('click',()=>{
-      curInd=t.dataset.ind;
-      const col=DATA.INDUSTRIES.find(i=>i.id===curInd).color;
-      setIndColor(col);
-      el.querySelectorAll('.ind-tab').forEach(x=>{x.classList.remove('active');x.style.color='';});
-      t.classList.add('active');
-      t.style.color=col;
-      renderAll();
-    });
-  });
-  // set active color
-  const at=el.querySelector('.ind-tab.active');
-  if(at) at.style.color=indColor();
+  el.querySelectorAll('.ind-tab').forEach(t=>t.addEventListener('click',()=>{
+    curInd=t.dataset.id;
+    setColor(ind().color);
+    buildIndTabs();
+    buildSidebar();
+    renderMain();
+  }));
 }
 
 // ── SIDEBAR ────────────────────────────────────────────────────────────────
@@ -237,29 +310,24 @@ function buildSidebar(){
   const el=$('proc-list');
   el.innerHTML=DATA.PROCESSES.map(p=>`
     <button class="proc-btn${p.id===curProc?' active':''}" data-id="${p.id}">
-      <span>${p.icon}</span>
+      <span style="font-size:11px">${p.icon}</span>
       <span style="flex:1">${p.name}</span>
       <span class="pnum">${p.num}</span>
     </button>`).join('');
-  el.querySelectorAll('.proc-btn').forEach(b=>{
-    b.addEventListener('click',()=>{
-      curProc=b.dataset.id;
-      el.querySelectorAll('.proc-btn').forEach(x=>x.classList.remove('active'));
-      b.classList.add('active');
-      resetSim();
-      renderMain();
-    });
-  });
+  el.querySelectorAll('.proc-btn').forEach(b=>b.addEventListener('click',()=>{
+    curProc=b.dataset.id;
+    buildSidebar();
+    resetSim();
+    renderMain();
+  }));
 }
 
 // ── PROC HEADER ────────────────────────────────────────────────────────────
 function renderHeader(){
-  const p=curProcObj();
-  const ind=DATA.INDUSTRIES.find(i=>i.id===curInd);
+  const p=proc(), i=ind();
   $('proc-header').innerHTML=`
-    <div class="ph-badge" style="color:${ind.color}">${ind.icon} ${ind.name}</div>
+    <div class="ph-badge" style="color:${i.color}">${i.name}</div>
     <div class="ph-top">
-      <span class="ph-icon">${p.icon}</span>
       <div>
         <div class="ph-num">Process ${p.num}</div>
         <div class="ph-title">${p.name}</div>
@@ -268,54 +336,119 @@ function renderHeader(){
     <div class="ph-desc">${p.desc}</div>`;
 }
 
-// ── AGENT MAP ──────────────────────────────────────────────────────────────
-function renderAgentMap(){
-  const p=curProcObj();
-  $('agent-map').innerHTML=`
-    <div class="am-title">Agent Orchestration Architecture</div>
-    <div class="am-nodes">
-      ${p.agents.map((a,i)=>`
-        ${i>0?'<span class="am-arrow">→</span>':''}
-        <div class="am-node${a.role==='orchestrator'?' orchestrator':''}">
-          <span class="an-icon">${a.icon}</span>
-          <span class="an-label">${a.label}</span>
-        </div>`).join('')}
-    </div>`;
+// ── AGENT ARCHITECTURE ─────────────────────────────────────────────────────
+function renderArch(){
+  const p = proc();
+  const specs = p.agents.filter(a=>a.role!=='orchestrator');
+  const n = specs.length;
+
+  // Layout constants
+  const W = 560;        // viewBox width (we'll scale with width:100%)
+  const NW = 86;        // node width
+  const NH = 42;        // node height
+  const ORCH_Y = 10;
+  const SPEC_Y = 102;
+  const gap = Math.min(18, (W - n*NW) / (n+1));
+  const totalSpecW = n*NW + (n-1)*gap;
+  const specX0 = (W - totalSpecW) / 2;
+  const orchX = (W - NW) / 2;
+  const orchCX = orchX + NW/2;
+  const orchBY = ORCH_Y + NH; // bottom of orchestrator
+
+  // Build connector lines from orchestrator bottom to each specialist top
+  const lines = specs.map((_, i) => {
+    const sx = specX0 + i*(NW+gap) + NW/2;
+    const sy = SPEC_Y;
+    // elbow: go down from orch, then branch out
+    const midY = ORCH_Y + NH + 22;
+    return `<path class="arch-connector" d="M${orchCX},${orchBY} L${orchCX},${midY} L${sx},${midY} L${sx},${sy}"/>`;
+  }).join('');
+
+  // Specialist nodes
+  const specNodes = specs.map((a, i) => {
+    const x = specX0 + i*(NW+gap);
+    const cx = x + NW/2;
+    return `
+      <g>
+        <rect class="arch-node-box" x="${x}" y="${SPEC_Y}" width="${NW}" height="${NH}" rx="4"/>
+        <text class="arch-node-label" x="${cx}" y="${SPEC_Y+14}" text-anchor="middle">${a.role}</text>
+        <text class="arch-node-title" x="${cx}" y="${SPEC_Y+28}" text-anchor="middle">${a.label}</text>
+      </g>`;
+  }).join('');
+
+  // Step flow tags below
+  const ss = steps();
+  const tagH = 20, tagGap = 6;
+  const tagY = SPEC_Y + NH + 18;
+  let tagX = 0, tagRows = [[]], maxRowW = W - 4;
+  ss.forEach(s => {
+    const label = `${s.num}`;
+    const tw = label.length * 7 + 16;
+    const row = tagRows[tagRows.length-1];
+    const rowW = row.reduce((sum,t)=>sum+t.w+tagGap,0);
+    if(row.length && rowW + tw > maxRowW) tagRows.push([{label,w:tw}]);
+    else row.push({label,w:tw});
+  });
+  let tagSVG = '';
+  tagRows.forEach((row,ri) => {
+    let rx = (W - row.reduce((s,t)=>s+t.w+tagGap,0) + tagGap) / 2;
+    row.forEach(t => {
+      const ty = tagY + ri*(tagH+4);
+      tagSVG += `<rect x="${rx}" y="${ty}" width="${t.w}" height="${tagH}" rx="3" fill="#181c24" stroke="#232836" stroke-width="0.5"/>
+        <text font-family="'DM Mono',monospace" font-size="9" fill="#6b7280" x="${rx+t.w/2}" y="${ty+13}" text-anchor="middle">${t.label}</text>`;
+      rx += t.w + tagGap;
+    });
+  });
+
+  const totalH = tagY + tagRows.length*(tagH+4) + 4;
+
+  $('agent-arch').innerHTML = `
+    <div class="arch-label">Agent Orchestration Architecture</div>
+    <svg class="arch-svg-wrap" viewBox="0 0 ${W} ${totalH}" style="display:block;width:100%;height:auto;overflow:visible">
+      <defs>
+        <marker id="arr" viewBox="0 0 8 8" refX="6" refY="4" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+          <path d="M1 1L7 4L1 7" fill="none" stroke="#232836" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+        </marker>
+      </defs>
+      ${lines}
+      <g>
+        <rect class="arch-node-box orch" x="${orchX}" y="${ORCH_Y}" width="${NW}" height="${NH}" rx="4"/>
+        <text class="arch-node-label" x="${orchCX}" y="${ORCH_Y+14}" text-anchor="middle">orchestrator</text>
+        <text class="arch-node-title" x="${orchCX}" y="${ORCH_Y+28}" text-anchor="middle">Orchestrator</text>
+      </g>
+      ${specNodes}
+      ${tagSVG}
+    </svg>`;
 }
 
-// ── STEPS GRID ────────────────────────────────────────────────────────────
-function renderSteps(runningIdx=-1, doneSet=new Set()){
-  const steps=curSteps();
-  $('steps-grid').innerHTML=steps.map((s,i)=>{
-    const isDone=doneSet.has(i);
-    const isRun=i===runningIdx;
-    const isPend=!isDone&&!isRun;
-    return `<div class="step-card${isRun?' running':isDone?' done':' pending'}" id="sc-${i}">
+// ── STEPS ──────────────────────────────────────────────────────────────────
+function renderSteps(runIdx=-1, doneSet=new Set()){
+  $('steps-grid').innerHTML=steps().map((s,i)=>{
+    const done=doneSet.has(i), run=i===runIdx;
+    return `<div class="step-card${run?' running':done?' done':' pending'}">
       <div class="sc-top">
-        <span class="sc-icon">${s.icon}</span>
-        <div>
+        <div class="sc-meta">
           <div class="sc-num">${s.num}</div>
           <div class="sc-name">${s.name}</div>
         </div>
-        ${isRun?'<span class="sc-status running" style="margin-left:auto">⏳ Running</span>':
-          isDone?'<span class="sc-status done" style="margin-left:auto">✓ Done</span>':''}
+        ${run?'<span class="sc-badge running">running</span>':done?'<span class="sc-badge done">done</span>':''}
       </div>
-      <div class="sc-agent">Agent: <span>${s.agent}</span></div>
+      <div class="sc-agent">Agent: <em>${s.agent}</em></div>
       <div class="sc-output">${s.output}</div>
     </div>`;
   }).join('');
 }
 
-// ── SIMULATION ────────────────────────────────────────────────────────────
+// ── SIMULATION ─────────────────────────────────────────────────────────────
 function resetSim(){
   if(simTimer) clearTimeout(simTimer);
   simRunning=false;
   $('run-btn').disabled=false;
-  $('run-btn').textContent='▶ Run Simulation';
+  $('run-btn').textContent='Run Simulation';
   $('prog-bar').style.width='0';
   $('prog-label').textContent='Ready';
   $('log-body').textContent='Awaiting simulation run...';
-  $('output-body').innerHTML='';
+  $('out-body').innerHTML='';
   renderSteps();
 }
 
@@ -323,311 +456,359 @@ function runSim(){
   if(simRunning) return;
   simRunning=true;
   $('run-btn').disabled=true;
-  const steps=curSteps();
-  const total=steps.length;
+  const ss=steps(), total=ss.length;
   let idx=0;
-  const done=new Set();
-  const logLines=[];
-  const outputs=[];
+  const done=new Set(), logs=[], outs=[];
 
   function tick(){
     if(idx>=total){
       $('prog-bar').style.width='100%';
       $('prog-label').textContent='Complete';
       $('run-btn').disabled=false;
-      $('run-btn').textContent='↺ Re-run';
+      $('run-btn').textContent='Re-run';
       simRunning=false;
-      // final output panel
-      $('output-body').innerHTML=outputs.map(o=>`
+      $('out-body').innerHTML=outs.map(o=>`
         <div class="out-item">
           <div class="out-step">${o.num} — ${o.name}</div>
           <div>${o.output}</div>
         </div>`).join('');
       return;
     }
-    const s=steps[idx];
-    const pct=Math.round((idx/total)*100);
-    $('prog-bar').style.width=pct+'%';
-    $('prog-label').textContent=`Step ${idx+1}/${total}`;
+    const s=ss[idx];
+    $('prog-bar').style.width=Math.round((idx/total)*100)+'%';
+    $('prog-label').textContent=`Step ${idx+1} / ${total}`;
     renderSteps(idx,done);
-    // log
     const ts=new Date().toLocaleTimeString('en-GB',{hour12:false});
-    logLines.push(`<div class="log-line"><span class="log-ts">[${ts}]</span> ${s.agent} → <strong>${s.name}</strong> (${s.num})</div>`);
-    $('log-body').innerHTML=logLines.join('');
+    logs.push(`<div><span class="log-ts">[${ts}]</span>  ${s.agent}  →  ${s.name}</div>`);
+    $('log-body').innerHTML=logs.join('');
     $('log-body').scrollTop=$('log-body').scrollHeight;
-
     setTimeout(()=>{
-      done.add(idx);
-      outputs.push(s);
+      done.add(idx); outs.push(s);
       renderSteps(-1,done);
       idx++;
-      simTimer=setTimeout(tick,600);
-    },900);
+      simTimer=setTimeout(tick,550);
+    },850);
   }
   tick();
 }
 
 $('run-btn').addEventListener('click',()=>{
-  if($('run-btn').textContent.includes('Re-run')) resetSim();
-  runSim();
+  if($('run-btn').textContent==='Re-run') resetSim();
+  setTimeout(runSim, 50);
 });
 
-// ── PANEL TABS ─────────────────────────────────────────────────────────────
-const PANELS=['log','output','assess','config'];
-document.querySelectorAll('.panel-tab').forEach(t=>{
-  t.addEventListener('click',()=>{
-    document.querySelectorAll('.panel-tab').forEach(x=>x.classList.remove('active'));
-    t.classList.add('active');
-    PANELS.forEach(p=>{
-      $(`${p}-body`).style.display=t.dataset.panel===p?'block':'none';
-    });
-    if(t.dataset.panel==='assess') renderAssess();
-    if(t.dataset.panel==='config') renderConfig();
-  });
-});
+// ── BOTTOM TABS ────────────────────────────────────────────────────────────
+document.querySelectorAll('.bot-tab').forEach(t=>t.addEventListener('click',()=>{
+  document.querySelectorAll('.bot-tab').forEach(x=>x.classList.remove('active'));
+  t.classList.add('active');
+  $('log-body').style.display=t.dataset.p==='log'?'block':'none';
+  $('out-body').style.display=t.dataset.p==='out'?'block':'none';
+}));
 
-// ── ASSESSMENT WIZARD ──────────────────────────────────────────────────────
+// ── RIGHT TABS ─────────────────────────────────────────────────────────────
+document.querySelectorAll('.right-tab').forEach(t=>t.addEventListener('click',()=>{
+  document.querySelectorAll('.right-tab').forEach(x=>x.classList.remove('active'));
+  t.classList.add('active');
+  $('assess-panel').style.display=t.dataset.r==='assess'?'block':'none';
+  $('config-panel').style.display=t.dataset.r==='config'?'block':'none';
+}));
+
+// ── ASSESSMENT ─────────────────────────────────────────────────────────────
+const QUESTIONS = [
+  { id:'industry', label:'What industry are you in?',
+    sub:'We use this to tailor the recommendations to your sector.',
+    type:'single', options:[
+      {v:'mfg',l:'Manufacturing'},{v:'retail',l:'Retail & E-commerce'},
+      {v:'fs',l:'Financial Services'},{v:'hc',l:'Healthcare'},
+      {v:'ps',l:'Professional Services'},{v:'gov',l:'Public Sector'},{v:'other',l:'Other / Mixed'}]},
+  { id:'size', label:'How large is your organisation?',
+    sub:'Helps us size the agent deployment appropriately.',
+    type:'single', options:[
+      {v:'micro',l:'Under 50 employees'},{v:'small',l:'50 – 250 employees'},
+      {v:'mid',l:'250 – 2,500 employees'},{v:'enterprise',l:'Over 2,500 employees'}]},
+  { id:'ops', label:'Which operations does your team run day to day?',
+    sub:'Select all that apply.',
+    type:'multi', options:[
+      {v:'buying and procurement',l:'Buying & procurement'},
+      {v:'sales and quoting',l:'Sales & quoting'},
+      {v:'manufacturing or production',l:'Manufacturing or production'},
+      {v:'field service or maintenance',l:'Field service & maintenance'},
+      {v:'project delivery',l:'Project delivery'},
+      {v:'finance and reporting',l:'Finance & reporting'},
+      {v:'hr and workforce',l:'HR & workforce management'},
+      {v:'customer service',l:'Customer service & cases'},
+      {v:'marketing and campaigns',l:'Marketing & campaigns'},
+      {v:'logistics and warehousing',l:'Logistics & warehousing'}]},
+  { id:'pains', label:'Where are your biggest operational pain points?',
+    sub:'Pick up to three.',
+    type:'multi', max:3, options:[
+      {v:'too much manual data entry',l:'Too much manual data entry'},
+      {v:'slow approvals and workflows',l:'Slow approvals & workflows'},
+      {v:'poor visibility across teams',l:'Poor visibility across teams'},
+      {v:'high cost of operations',l:'High cost of operations'},
+      {v:'slow customer response times',l:'Slow customer response times'},
+      {v:'compliance and audit risk',l:'Compliance & audit risk'},
+      {v:'inventory and supply issues',l:'Inventory & supply issues'},
+      {v:'project overruns',l:'Project overruns & margin pressure'}]},
+  { id:'aiready', label:'Where are you on AI adoption?',
+    sub:'Helps us set realistic timelines and complexity.',
+    type:'single', options:[
+      {v:'exploring',l:'Exploring — no AI in production yet'},
+      {v:'piloting',l:'Piloting — one or two tools in use'},
+      {v:'scaling',l:'Scaling — AI across several teams'},
+      {v:'advanced',l:'Advanced — AI-first operations'}]},
+  { id:'oversight', label:'How much human oversight do you need on automated decisions?',
+    sub:'You can adjust this per process later.',
+    type:'single', options:[
+      {v:'full-auto',l:'Fully automated — agents act independently'},
+      {v:'human-loop',l:'Human-in-loop — approve before action'},
+      {v:'human-on',l:'Human-on-loop — review after action'},
+      {v:'manual',l:'Manual approval — agents recommend only'}]},
+];
+
+function mapProcesses(d){
+  const always=['p99','p55','p90'];
+  const byInd={mfg:['p70','p60','p10','p75','p50','p65','p95','p80'],retail:['p65','p60','p30','p75','p40','p50','p20','p85'],fs:['p65','p90','p85','p30','p20','p80','p75','p50'],hc:['p95','p20','p10','p55','p75','p90','p50','p30'],ps:['p80','p85','p65','p20','p30','p75','p50','p40'],gov:['p90','p20','p75','p80','p55','p50','p95','p10']};
+  const byOps={'buying and procurement':['p75','p60'],'sales and quoting':['p85','p65'],'manufacturing or production':['p70','p60','p10'],'field service or maintenance':['p95','p10'],'project delivery':['p80','p65'],'finance and reporting':['p90','p65'],'hr and workforce':['p55'],'customer service':['p20','p95'],'marketing and campaigns':['p30','p40'],'logistics and warehousing':['p60','p75']};
+  const byPain={'too much manual data entry':['p90','p65','p75'],'slow approvals and workflows':['p75','p80','p65'],'poor visibility across teams':['p50','p90','p80'],'high cost of operations':['p75','p55','p70'],'slow customer response times':['p20','p95','p85'],'compliance and audit risk':['p90','p99','p55'],'inventory and supply issues':['p60','p75','p70'],'project overruns':['p80','p50']};
+  const sizeLimit={micro:4,small:6,mid:9,enterprise:15}[d.size]||9;
+  let scored={};
+  const add=(ids,w)=>ids.forEach(id=>{scored[id]=(scored[id]||0)+w;});
+  add(always,3);
+  add(byInd[d.industry]||[],2);
+  (d.ops||[]).forEach(op=>add(byOps[op]||[],3));
+  (d.pains||[]).forEach(p=>add(byPain[p]||[],4));
+  return Object.entries(scored).sort((a,b)=>b[1]-a[1]).slice(0,sizeLimit)
+    .map(([id,score])=>({id,score,proc:DATA.PROCESSES.find(p=>p.id===id)})).filter(x=>x.proc);
+}
+
 function renderAssess(){
-  const ind=DATA.INDUSTRIES.find(i=>i.id===curInd);
-  const p=curProcObj();
-  const col=ind.color;
-  $('assess-body').innerHTML=`
-    <div class="assess-steps">
-      ${[1,2,3].map(n=>`
-        ${n>1?'<div class="assess-line"></div>':''}
-        <div class="assess-step-dot${assessStep===n?' active':assessStep>n?' done':''}" data-n="${n}">${assessStep>n?'✓':n}</div>
-      `).join('')}
+  const total=QUESTIONS.length;
+  if(assessStep===0){
+    $('assess-panel').innerHTML=`
+      <div style="padding:6px 0 14px">
+        <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:6px">Tell us about your business</div>
+        <div style="font-size:11px;color:var(--muted);line-height:1.6;margin-bottom:14px">Answer six short questions about your organisation and operations. We will recommend the right AI agents and processes — no need to know the Microsoft catalog upfront.</div>
+        <button class="a-btn" onclick="assessStep=1;renderAssess()">Start assessment</button>
+      </div>`;
+    return;
+  }
+  if(assessStep>total){renderAssessResult();return;}
+  const q=QUESTIONS[assessStep-1];
+  const curVal=assessData[q.id];
+  const isMulti=q.type==='multi';
+  $('assess-panel').innerHTML=`
+    <div class="assess-progress">
+      <div class="ap-bar"><div class="ap-fill" style="width:${Math.round(((assessStep-1)/total)*100)}%"></div></div>
+      <div class="ap-label">Question ${assessStep} of ${total}</div>
     </div>
-    <div class="assess-form${assessStep===1?' active':''}" id="af1">
-      <div class="assess-q">Which process areas are you automating?</div>
-      <div class="assess-pills">
-        ${DATA.PROCESSES.map(pp=>`<div class="assess-pill${(assessData.procs||[]).includes(pp.id)?' sel':''}" data-v="${pp.id}">${pp.icon} ${pp.name}</div>`).join('')}
-      </div>
-      <button class="assess-btn" onclick="assessNext(1)">Next →</button>
+    <div class="a-q">${q.label}</div>
+    <div class="a-sub">${q.sub}</div>
+    <div class="a-pills" id="q-pills">
+      ${q.options.map(o=>{
+        const sel=isMulti?(Array.isArray(curVal)&&curVal.includes(o.v)):curVal===o.v;
+        return `<div class="a-pill${sel?' sel':''}" data-v="${o.v}">${o.l}</div>`;
+      }).join('')}
     </div>
-    <div class="assess-form${assessStep===2?' active':''}" id="af2">
-      <div class="assess-q">Monthly transaction volume?</div>
-      <div class="assess-pills">
-        ${['<1K','1K–10K','10K–100K','>100K'].map(v=>`<div class="assess-pill${assessData.vol===v?' sel':''}" data-v="${v}">${v}</div>`).join('')}
-      </div>
-      <div class="assess-q" style="margin-top:10px">Current ERP / landscape?</div>
-      <input class="assess-input" id="erp-input" placeholder="e.g. D365 Finance + SCM" value="${assessData.erp||''}">
-      <button class="assess-btn" onclick="assessNext(2)">Next →</button>
-    </div>
-    <div class="assess-form${assessStep===3?' active':''}" id="af3">
-      <div class="assess-q">Human oversight preference?</div>
-      <div class="assess-pills">
-        ${['Fully automated','Human-in-loop','Human-on-loop','Manual approval'].map(v=>`<div class="assess-pill${assessData.oversight===v?' sel':''}" data-v="${v}">${v}</div>`).join('')}
-      </div>
-      <button class="assess-btn" onclick="assessNext(3)">Generate Assessment →</button>
-    </div>
-    <div id="assess-result" style="display:none"></div>
-  `;
-  // wire pills
-  document.querySelectorAll('#assess-body .assess-pill').forEach(pill=>{
+    <div style="display:flex;gap:8px;margin-top:6px;align-items:center">
+      ${assessStep>1?'<button class="a-back" onclick="assessStep--;renderAssess()">Back</button>':''}
+      <button class="a-btn" onclick="aNext()">${assessStep===total?'Show recommendations':'Next'}</button>
+    </div>`;
+  document.querySelectorAll('#q-pills .a-pill').forEach(pill=>{
     pill.addEventListener('click',()=>{
-      const form=pill.closest('.assess-form');
-      const q=pill.closest('.assess-pills');
-      const multi=form?.id==='af1';
-      if(multi){
+      if(isMulti){
+        const max=q.max||99;
+        const already=pill.classList.contains('sel');
+        const selCount=document.querySelectorAll('#q-pills .sel').length;
+        if(!already&&selCount>=max)return;
         pill.classList.toggle('sel');
-        assessData.procs=[...q.querySelectorAll('.sel')].map(x=>x.dataset.v);
+        assessData[q.id]=[...document.querySelectorAll('#q-pills .sel')].map(x=>x.dataset.v);
       } else {
-        q.querySelectorAll('.sel').forEach(x=>x.classList.remove('sel'));
+        document.querySelectorAll('#q-pills .sel').forEach(x=>x.classList.remove('sel'));
         pill.classList.add('sel');
-        if(form?.id==='af2') assessData.vol=pill.dataset.v;
-        if(form?.id==='af3') assessData.oversight=pill.dataset.v;
+        assessData[q.id]=pill.dataset.v;
       }
     });
   });
 }
 
-function assessNext(step){
-  if(step===1){
-    if(!(assessData.procs||[]).length){ alert('Select at least one process'); return; }
-    assessStep=2;
-  } else if(step===2){
-    assessData.erp=$('erp-input')?.value||'';
-    if(!assessData.vol){ alert('Select a volume range'); return; }
-    assessStep=3;
-  } else {
-    if(!assessData.oversight){ alert('Select oversight preference'); return; }
-    assessStep=4;
-    showAssessResult();
+function aNext(){
+  const q=QUESTIONS[assessStep-1];
+  const val=assessData[q.id];
+  const ok=q.type==='multi'?(Array.isArray(val)&&val.length>0):!!val;
+  if(!ok){
+    const el=document.querySelector('#q-pills');
+    if(el){el.style.outline='1px solid #f75c5c';el.style.borderRadius='4px';setTimeout(()=>{el.style.outline='none';},1200);}
     return;
   }
+  assessStep++;
   renderAssess();
 }
 
-function showAssessResult(){
-  const n=assessData.procs.length;
-  const volMul={'<1K':1,'1K–10K':3,'10K–100K':8,'>100K':18}[assessData.vol]||3;
-  const totalAgents=Math.min(n*5+2,42);
-  const instances=Math.max(2,Math.round(volMul*n/3));
-  const monthlyCost=Math.round(instances*n*220);
-  const setupCost=Math.round(n*12000);
-  const col=indColor();
-  $('assess-result').style.display='block';
-  $('assess-result').innerHTML=`
-    <div class="assess-result">
-      <div class="ar-title">📊 Assessment Result</div>
-      <div class="ar-grid">
-        <div class="ar-metric"><div class="arv" style="color:${col}">${totalAgents}</div><div class="arl">Total Agents</div></div>
-        <div class="ar-metric"><div class="arv" style="color:${col}">${instances}</div><div class="arl">Agent Instances</div></div>
-        <div class="ar-metric"><div class="arv" style="color:${col}">€${(monthlyCost/1000).toFixed(0)}K</div><div class="arl">Est. Monthly Cost</div></div>
-      </div>
-      <div class="ar-phases">
-        <strong>Setup cost estimate:</strong> €${(setupCost/1000).toFixed(0)}K one-time<br>
-        <strong>Phase 1 (0–3 mo):</strong> Pilot ${assessData.procs.slice(0,2).map(id=>DATA.PROCESSES.find(p=>p.id===id)?.name).join(', ')}<br>
-        <strong>Phase 2 (3–6 mo):</strong> Expand to remaining ${n-2>0?n-2:0} processes<br>
-        <strong>Phase 3 (6–12 mo):</strong> Optimise, add cross-process orchestration<br>
-        <strong>Oversight:</strong> ${assessData.oversight}
-      </div>
-      <div class="ar-check">
-        <div class="ar-check-title">Customer Preparation Checklist</div>
-        <ul>
-          <li>D365 environment access and API credentials</li>
-          <li>Process owner sign-off for each automation domain</li>
-          <li>Data quality baseline assessment completed</li>
-          <li>Azure AI Foundry subscription provisioned</li>
-          <li>Change management and user training plan</li>
-          <li>Governance and escalation matrix defined</li>
-        </ul>
-      </div>
+function renderAssessResult(){
+  const recs=mapProcesses(assessData);
+  const col=ind().color;
+  const n=recs.length;
+  const sizeMul={micro:1,small:2,mid:4,enterprise:8}[assessData.size]||3;
+  const aiMul={exploring:1,piloting:1.5,scaling:2,advanced:3}[assessData.aiready]||1.5;
+  const agents=Math.round(n*4*Math.min(aiMul,2));
+  const monthly=Math.round(n*sizeMul*280);
+  const setup=Math.round(n*sizeMul*3800);
+  const phase1=recs.slice(0,2).map(r=>r.proc.name);
+  const phase2=recs.slice(2,5).map(r=>r.proc.name);
+  const phase3=recs.slice(5).map(r=>r.proc.name);
+  const indLabel=DATA.INDUSTRIES.find(i=>i.id===assessData.industry)?.name||'Your industry';
+  $('assess-panel').innerHTML=`
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+      <div style="font-size:12px;font-weight:600;color:var(--text)">Your AI process roadmap</div>
+      <button class="a-back" onclick="assessStep=0;assessData={};renderAssess()">Start over</button>
+    </div>
+    <div style="background:var(--surface2);border-radius:5px;padding:9px 11px;margin-bottom:10px;border:1px solid var(--border)">
+      <div style="font-size:10px;color:var(--muted);margin-bottom:2px;font-family:var(--mono);text-transform:uppercase;letter-spacing:.06em">${indLabel} · ${assessData.size||''}</div>
+      <div style="font-size:11px;color:var(--muted);line-height:1.6">Based on your operations and pain points, we identified <strong style="color:var(--text)">${n} process domains</strong> where agentic AI will have the highest impact.</div>
+    </div>
+    <div class="ar-grid" style="margin-bottom:10px">
+      <div class="ar-metric"><div class="arv" style="color:${col}">${agents}</div><div class="arl">Agents</div></div>
+      <div class="ar-metric"><div class="arv" style="color:${col}">€${(monthly/1000).toFixed(0)}K</div><div class="arl">/ month</div></div>
+      <div class="ar-metric"><div class="arv" style="color:${col}">€${(setup/1000).toFixed(0)}K</div><div class="arl">setup</div></div>
+    </div>
+    <div style="margin-bottom:10px">
+      <div class="ar-check-title" style="margin-bottom:6px">Recommended processes — ranked by impact</div>
+      ${recs.map((r,i)=>`
+        <div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border)">
+          <div style="width:18px;height:18px;border-radius:3px;background:${i<2?col:'var(--surface2)'};display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:${i<2?'#000':'var(--muted)'};flex-shrink:0;font-family:var(--mono)">${i+1}</div>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:11px;font-weight:600;color:var(--text)">${r.proc.name}</div>
+            <div style="font-size:10px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${r.proc.desc.split('.')[0]}</div>
+          </div>
+          <div style="font-size:9px;font-family:var(--mono);color:var(--muted);flex-shrink:0">${r.proc.num}</div>
+        </div>`).join('')}
+    </div>
+    <div class="ar-phases" style="margin-bottom:10px">
+      <strong>Phase 1 (0–3 mo):</strong> ${phase1.join(', ')}<br>
+      ${phase2.length?`<strong>Phase 2 (3–6 mo):</strong> ${phase2.join(', ')}<br>`:''}
+      ${phase3.length?`<strong>Phase 3 (6–12 mo):</strong> ${phase3.join(', ')}<br>`:''}
+      <strong>Oversight model:</strong> ${assessData.oversight||'—'}
+    </div>
+    <div class="ar-check">
+      <div class="ar-check-title">Preparation checklist</div>
+      <ul>
+        <li>D365 API credentials and environment access</li>
+        <li>Process owner sign-off per domain</li>
+        <li>Data quality baseline completed</li>
+        <li>Azure AI Foundry subscription provisioned</li>
+        <li>Change management plan in place</li>
+        <li>Governance and escalation matrix defined</li>
+      </ul>
     </div>`;
 }
 
-// ── AI FOUNDRY CONFIG ──────────────────────────────────────────────────────
+// ── CONFIG PANEL ───────────────────────────────────────────────────────────
 function renderConfig(){
-  const p=curProcObj();
-  const ind=DATA.INDUSTRIES.find(i=>i.id===curInd);
-  $('config-body').innerHTML=`
-    <div class="cfg-section-label">Model</div>
-    <div class="cfg-pills-row">
-      ${['claude-sonnet-4-20250514','claude-opus-4-20250514','claude-haiku-4-5-20251001'].map(m=>`
-        <div class="cfg-pill${cfgState.model===m?' sel':''}" data-type="model" data-v="${m}">${m}</div>`).join('')}
+  $('config-panel').innerHTML=`
+    <div class="cfg-section">
+      <div class="cfg-label">Model</div>
+      <div class="cfg-pills">
+        ${['claude-sonnet-4-20250514','claude-opus-4-20250514','claude-haiku-4-5-20251001'].map(m=>`
+          <div class="cfg-pill${cfgState.model===m?' sel':''}" data-t="model" data-v="${m}">${m}</div>`).join('')}
+      </div>
     </div>
-    <div class="cfg-section-label">Agent Mode</div>
-    <div class="cfg-pills-row">
-      ${['Agentic','Supervised','Batch'].map(m=>`
-        <div class="cfg-pill${cfgState.mode===m?' sel':''}" data-type="mode" data-v="${m}">${m}</div>`).join('')}
+    <div class="cfg-section">
+      <div class="cfg-label">Agent Mode</div>
+      <div class="cfg-pills">
+        ${['Agentic','Supervised','Batch'].map(m=>`
+          <div class="cfg-pill${cfgState.mode===m?' sel':''}" data-t="mode" data-v="${m}">${m}</div>`).join('')}
+      </div>
     </div>
-    <div class="cfg-section-label">Data Sources</div>
-    <div class="cfg-pills-row">
-      ${['D365','SharePoint','Dataverse','Azure SQL','SAP','Blob Storage'].map(s=>`
-        <div class="cfg-pill${(cfgState.sources||[]).includes(s)?' sel':''}" data-type="source" data-v="${s}">${s}</div>`).join('')}
+    <div class="cfg-section">
+      <div class="cfg-label">Data Sources</div>
+      <div class="cfg-pills">
+        ${['D365','SharePoint','Dataverse','Azure SQL','SAP','Blob Storage'].map(s=>`
+          <div class="cfg-pill${(cfgState.sources||[]).includes(s)?' sel':''}" data-t="source" data-v="${s}">${s}</div>`).join('')}
+      </div>
     </div>
-    <div class="cfg-section-label">Azure Endpoint</div>
-    <input class="cfg-input" id="az-endpoint" placeholder="https://your-resource.openai.azure.com/" value="${cfgState.endpoint||''}">
-    <div class="cfg-section-label">Resource Group</div>
-    <input class="cfg-input" id="az-rg" placeholder="rg-agentic-bpc-prod" value="${cfgState.rg||''}">
-    <button class="cfg-gen-btn" id="cfg-gen-btn" onclick="generateConfig()">⚡ Generate AI Foundry Config</button>
-    <div id="cfg-output"></div>
-    <div class="cfg-actions" id="cfg-actions" style="display:none">
-      <button class="cfg-act-btn" onclick="copyConfig()">📋 Copy YAML</button>
-      <button class="cfg-act-btn" onclick="downloadConfig()">⬇ Download</button>
+    <div class="cfg-section">
+      <div class="cfg-label">Azure Endpoint</div>
+      <input class="cfg-input" id="az-ep" placeholder="https://your-resource.openai.azure.com/" value="${cfgState.endpoint||''}">
+      <div class="cfg-label">Resource Group</div>
+      <input class="cfg-input" id="az-rg" placeholder="rg-agentic-bpc-prod" value="${cfgState.rg||''}">
     </div>
-  `;
-  document.querySelectorAll('#config-body .cfg-pill').forEach(pill=>{
+    <button class="cfg-gen" id="cfg-gen-btn" onclick="genConfig()">Generate AI Foundry Config</button>
+    <div id="cfg-out"></div>
+    <div class="cfg-actions" id="cfg-acts" style="display:none">
+      <button class="cfg-act" onclick="copyYaml()">Copy YAML</button>
+      <button class="cfg-act" onclick="dlYaml()">Download</button>
+    </div>`;
+
+  document.querySelectorAll('#config-panel .cfg-pill').forEach(pill=>{
     pill.addEventListener('click',()=>{
-      const {type,v}=pill.dataset;
-      if(type==='model'){
-        cfgState.model=v;
-        document.querySelectorAll('[data-type="model"]').forEach(x=>x.classList.remove('sel'));
-        pill.classList.add('sel');
-      } else if(type==='mode'){
-        cfgState.mode=v;
-        document.querySelectorAll('[data-type="mode"]').forEach(x=>x.classList.remove('sel'));
-        pill.classList.add('sel');
-      } else if(type==='source'){
-        pill.classList.toggle('sel');
-        cfgState.sources=[...document.querySelectorAll('[data-type="source"].sel')].map(x=>x.dataset.v);
-      }
+      const {t,v}=pill.dataset;
+      if(t==='model'){cfgState.model=v;document.querySelectorAll('[data-t="model"]').forEach(x=>x.classList.remove('sel'));pill.classList.add('sel');}
+      else if(t==='mode'){cfgState.mode=v;document.querySelectorAll('[data-t="mode"]').forEach(x=>x.classList.remove('sel'));pill.classList.add('sel');}
+      else if(t==='source'){pill.classList.toggle('sel');cfgState.sources=[...document.querySelectorAll('[data-t="source"].sel')].map(x=>x.dataset.v);}
     });
   });
 }
 
-async function generateConfig(){
-  const p=curProcObj();
-  const ind=DATA.INDUSTRIES.find(i=>i.id===curInd);
-  const btn=$('cfg-gen-btn');
-  const out=$('cfg-output');
-  cfgState.endpoint=$('az-endpoint')?.value||'';
+async function genConfig(){
+  const p=proc(), i=ind();
+  const btn=$('cfg-gen-btn'), out=$('cfg-out');
+  cfgState.endpoint=$('az-ep')?.value||'';
   cfgState.rg=$('az-rg')?.value||'';
-  btn.disabled=true;
-  btn.textContent='⏳ Generating...';
-  out.style.display='block';
-  out.textContent='Calling Claude API...';
+  btn.disabled=true; btn.textContent='Generating...';
+  out.style.display='block'; out.textContent='Calling Claude API...';
 
-  const prompt=`Generate a production Azure AI Foundry YAML configuration for:
+  const prompt=`Generate a production Azure AI Foundry YAML config for:
 Process: ${p.num} - ${p.name}
-Industry: ${ind.name}
+Industry: ${i.name}
 Model: ${cfgState.model}
 Mode: ${cfgState.mode}
 Data sources: ${(cfgState.sources||[]).join(', ')}
 Agents: ${p.agents.map(a=>a.label).join(', ')}
-Steps: ${curSteps().map(s=>s.name).join(', ')}
+Steps: ${steps().map(s=>s.name).join(', ')}
+Return ONLY valid YAML with: project metadata, agent definitions (role, model, tools, guardrails), data_sources, orchestration, monitoring, audit_log, managed_identity, spend_threshold. No explanation, no markdown fences.`;
 
-Return ONLY valid YAML config with: project metadata, agent definitions (one per agent above with role, model, tools, guardrails), data_sources, orchestration settings, monitoring, audit_log, managed_identity, spend_threshold. No explanation.`;
-
-  try {
+  try{
     const res=await fetch('https://api.anthropic.com/v1/messages',{
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({
-        model:'claude-sonnet-4-20250514',
-        max_tokens:1000,
-        messages:[{role:'user',content:prompt}]
-      })
+      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,messages:[{role:'user',content:prompt}]})
     });
     const data=await res.json();
-    const text=data.content?.map(c=>c.text||'').join('')||'Error generating config.';
-    const yaml=text.replace(/```ya?ml|```/gi,'').trim();
-    out.textContent=yaml;
-    $('cfg-actions').style.display='flex';
-    window._lastYaml=yaml;
-  } catch(e){
-    out.textContent='Error: '+e.message;
-  }
-  btn.disabled=false;
-  btn.textContent='⚡ Generate AI Foundry Config';
+    const text=(data.content||[]).map(c=>c.text||'').join('').replace(/```ya?ml|```/gi,'').trim();
+    out.textContent=text;
+    $('cfg-acts').style.display='flex';
+    window._yaml=text;
+  } catch(e){ out.textContent='Error: '+e.message; }
+  btn.disabled=false; btn.textContent='Generate AI Foundry Config';
 }
 
-function copyConfig(){
-  navigator.clipboard.writeText(window._lastYaml||'').then(()=>alert('Copied!'));
-}
-
-function downloadConfig(){
+function copyYaml(){ navigator.clipboard.writeText(window._yaml||'').then(()=>alert('Copied!')); }
+function dlYaml(){
   const a=document.createElement('a');
-  a.href='data:text/yaml;charset=utf-8,'+encodeURIComponent(window._lastYaml||'');
+  a.href='data:text/yaml;charset=utf-8,'+encodeURIComponent(window._yaml||'');
   a.download=`bpc-${curProc}-${curInd}.yaml`;
   a.click();
 }
 
 // ── RENDER ALL ─────────────────────────────────────────────────────────────
 function renderMain(){
-  resetSim();
   renderHeader();
-  renderAgentMap();
+  renderArch();
   renderSteps();
-  // reset panels
-  document.querySelectorAll('.panel-tab').forEach(t=>t.classList.remove('active'));
-  document.querySelector('[data-panel="log"]').classList.add('active');
-  PANELS.forEach(p=>{ $(`${p}-body`).style.display=p==='log'?'block':'none'; });
-  $('log-body').textContent='Awaiting simulation run...';
-  $('output-body').innerHTML='';
-  assessStep=1; assessData={};
+  assessStep=0; assessData={};
+  renderAssess();
+  renderConfig();
 }
 
-function renderAll(){
+function init(){
+  setColor(ind().color);
   buildIndTabs();
   buildSidebar();
   renderMain();
 }
 
-// ── INIT ───────────────────────────────────────────────────────────────────
-setIndColor(indColor());
-renderAll();
+init();
 </script>
 </body>
 </html>

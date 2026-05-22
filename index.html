@@ -343,81 +343,51 @@ function renderArch(){
   const n = specs.length;
 
   // Layout constants
-  const W = 560;        // viewBox width (we'll scale with width:100%)
-  const NW = 86;        // node width
-  const NH = 42;        // node height
-  const ORCH_Y = 10;
-  const SPEC_Y = 102;
-  const gap = Math.min(18, (W - n*NW) / (n+1));
+  // Node dimensions — wider to fit emoji + label
+  const NW = 100, NH = 50, ORCH_Y = 10, SPEC_Y = 108;
+  const W = 560;
+  const gap = Math.max(6, (W - n*NW) / (n+1));
   const totalSpecW = n*NW + (n-1)*gap;
-  const specX0 = (W - totalSpecW) / 2;
+  const specX0 = Math.max(0, (W - totalSpecW) / 2);
   const orchX = (W - NW) / 2;
   const orchCX = orchX + NW/2;
-  const orchBY = ORCH_Y + NH; // bottom of orchestrator
+  const orchBY = ORCH_Y + NH;
 
-  // Build connector lines from orchestrator bottom to each specialist top
+  // Orch agent — use process icon
+  const orchAgent = proc().agents.find(a=>a.role==='orchestrator') || {icon:'🧠',label:'Orchestrator'};
+
+  // Elbow connectors: orch bottom -> midY -> each spec top
+  const midY = ORCH_Y + NH + 22;
   const lines = specs.map((_, i) => {
     const sx = specX0 + i*(NW+gap) + NW/2;
-    const sy = SPEC_Y;
-    // elbow: go down from orch, then branch out
-    const midY = ORCH_Y + NH + 22;
-    return `<path class="arch-connector" d="M${orchCX},${orchBY} L${orchCX},${midY} L${sx},${midY} L${sx},${sy}"/>`;
+    return `<path class="arch-connector" d="M${orchCX},${orchBY} L${orchCX},${midY} L${sx},${midY} L${sx},${SPEC_Y}"/>`;
   }).join('');
 
-  // Specialist nodes
+  // Specialist nodes with emoji
   const specNodes = specs.map((a, i) => {
     const x = specX0 + i*(NW+gap);
     const cx = x + NW/2;
-    return `
-      <g>
+    return `<g>
         <rect class="arch-node-box" x="${x}" y="${SPEC_Y}" width="${NW}" height="${NH}" rx="4"/>
-        <text class="arch-node-label" x="${cx}" y="${SPEC_Y+14}" text-anchor="middle">${a.role}</text>
-        <text class="arch-node-title" x="${cx}" y="${SPEC_Y+28}" text-anchor="middle">${a.label}</text>
+        <text font-size="16" x="${cx}" y="${SPEC_Y+18}" text-anchor="middle" dominant-baseline="middle">${a.icon}</text>
+        <text class="arch-node-label" x="${cx}" y="${SPEC_Y+30}" text-anchor="middle">${a.role}</text>
+        <text class="arch-node-title" x="${cx}" y="${SPEC_Y+43}" text-anchor="middle">${a.label}</text>
       </g>`;
   }).join('');
 
-  // Step flow tags below
-  const ss = steps();
-  const tagH = 20, tagGap = 6;
-  const tagY = SPEC_Y + NH + 18;
-  let tagX = 0, tagRows = [[]], maxRowW = W - 4;
-  ss.forEach(s => {
-    const label = `${s.num}`;
-    const tw = label.length * 7 + 16;
-    const row = tagRows[tagRows.length-1];
-    const rowW = row.reduce((sum,t)=>sum+t.w+tagGap,0);
-    if(row.length && rowW + tw > maxRowW) tagRows.push([{label,w:tw}]);
-    else row.push({label,w:tw});
-  });
-  let tagSVG = '';
-  tagRows.forEach((row,ri) => {
-    let rx = (W - row.reduce((s,t)=>s+t.w+tagGap,0) + tagGap) / 2;
-    row.forEach(t => {
-      const ty = tagY + ri*(tagH+4);
-      tagSVG += `<rect x="${rx}" y="${ty}" width="${t.w}" height="${tagH}" rx="3" fill="#181c24" stroke="#232836" stroke-width="0.5"/>
-        <text font-family="'DM Mono',monospace" font-size="9" fill="#6b7280" x="${rx+t.w/2}" y="${ty+13}" text-anchor="middle">${t.label}</text>`;
-      rx += t.w + tagGap;
-    });
-  });
-
-  const totalH = tagY + tagRows.length*(tagH+4) + 4;
+  const totalH = SPEC_Y + NH + 8;
 
   $('agent-arch').innerHTML = `
     <div class="arch-label">Agent Orchestration Architecture</div>
     <svg class="arch-svg-wrap" viewBox="0 0 ${W} ${totalH}" style="display:block;width:100%;height:auto;overflow:visible">
-      <defs>
-        <marker id="arr" viewBox="0 0 8 8" refX="6" refY="4" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
-          <path d="M1 1L7 4L1 7" fill="none" stroke="#232836" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
-        </marker>
-      </defs>
       ${lines}
       <g>
         <rect class="arch-node-box orch" x="${orchX}" y="${ORCH_Y}" width="${NW}" height="${NH}" rx="4"/>
-        <text class="arch-node-label" x="${orchCX}" y="${ORCH_Y+14}" text-anchor="middle">orchestrator</text>
-        <text class="arch-node-title" x="${orchCX}" y="${ORCH_Y+28}" text-anchor="middle">Orchestrator</text>
+        <text font-size="16" x="${orchCX}" y="${ORCH_Y+16}" text-anchor="middle" dominant-baseline="middle">${orchAgent.icon}</text>
+        <text class="arch-node-label" x="${orchCX}" y="${ORCH_Y+30}" text-anchor="middle">orchestrator</text>
+        <text class="arch-node-title" x="${orchCX}" y="${ORCH_Y+43}" text-anchor="middle">Orchestrator</text>
       </g>
       ${specNodes}
-      ${tagSVG}
     </svg>`;
 }
 
@@ -709,7 +679,7 @@ function renderConfig(){
     <div class="cfg-section">
       <div class="cfg-label">Model</div>
       <div class="cfg-pills">
-        ${['claude-sonnet-4-20250514','claude-opus-4-20250514','claude-haiku-4-5-20251001'].map(m=>`
+        ${['claude-opus-4-5','claude-sonnet-4-5','claude-haiku-4-5','claude-opus-4-0','claude-sonnet-4-0','gpt-4o','gpt-4o-mini','gpt-4-turbo','gemini-2.0-flash','gemini-1.5-pro'].map(m=>`
           <div class="cfg-pill${cfgState.model===m?' sel':''}" data-t="model" data-v="${m}">${m}</div>`).join('')}
       </div>
     </div>
@@ -772,7 +742,7 @@ Return ONLY valid YAML with: project metadata, agent definitions (role, model, t
     const res=await fetch('https://api.anthropic.com/v1/messages',{
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,messages:[{role:'user',content:prompt}]})
+      body:JSON.stringify({model:'claude-sonnet-4-5',max_tokens:1000,messages:[{role:'user',content:prompt}]})
     });
     const data=await res.json();
     const text=(data.content||[]).map(c=>c.text||'').join('').replace(/```ya?ml|```/gi,'').trim();

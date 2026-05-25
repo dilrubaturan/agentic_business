@@ -618,52 +618,153 @@ function renderAssessResult(){
   const col = ind().color;
   const n = recs.length;
   const sizeMul = {micro:1,small:2,mid:4,enterprise:8}[assessData.size]||3;
-  const aiMul = {exploring:1,piloting:1.5,scaling:2,advanced:3}[assessData.aiready]||1.5;
-  const monthly = Math.round(n*sizeMul*280);
-  const setup = Math.round(n*sizeMul*3800);
-  const indLabel = DATA.INDUSTRIES.find(i=>i.id===assessData.industry)?.name||'Your industry';
+  const aiMul   = {exploring:1,piloting:1.4,scaling:1.8,advanced:2.4}[assessData.aiready]||1.4;
+  const monthly = Math.round(n * sizeMul * 280);
+  const setup   = Math.round(n * sizeMul * 3800);
+  const indLabel = DATA.INDUSTRIES.find(i=>i.id===assessData.industry)?.name || 'Your industry';
   const sizeLabel = {micro:'Under 50 employees',small:'50–250 employees',mid:'250–2,500 employees',enterprise:'Over 2,500 employees'}[assessData.size]||assessData.size;
-  const aiLabel = {exploring:'Exploring',piloting:'Piloting',scaling:'Scaling',advanced:'Advanced'}[assessData.aiready]||assessData.aiready;
+  const aiLabel   = {exploring:'Exploring',piloting:'Piloting',scaling:'Scaling',advanced:'Advanced'}[assessData.aiready]||assessData.aiready;
   const date = new Date().toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'});
 
-  // Build per-process agent details
-  // Each process has its own agent list — collect unique agents across all recommended processes
-  const allAgentRoles = {};
-  let totalAgentCount = 0;
+  // Collect unique agents across all recommended processes
+  const agentMap = {};
   recs.forEach(r => {
     r.proc.agents.forEach(a => {
-      const key = a.role;
-      if(!allAgentRoles[key]){
-        allAgentRoles[key] = {icon:a.icon, label:a.label, role:a.role, processes:[]};
-        totalAgentCount++;
+      if(!agentMap[a.role]){
+        agentMap[a.role] = {icon:a.icon, label:a.label, role:a.role, processes:[]};
       }
-      allAgentRoles[key].processes.push(r.proc.name);
+      agentMap[a.role].processes.push(r.proc.name);
     });
   });
-  const uniqueAgents = Object.values(allAgentRoles);
+  const uniqueAgents = Object.values(agentMap);
+  const totalAgentCount = uniqueAgents.length;
 
   // Phase breakdown
   const phases = [
-    {label:'Phase 1', period:'Months 0–3', tag:'Foundation', items:recs.slice(0,2)},
-    {label:'Phase 2', period:'Months 3–6', tag:'Expansion', items:recs.slice(2,5)},
+    {label:'Phase 1', period:'Months 0–3',  tag:'Foundation',   items:recs.slice(0,2)},
+    {label:'Phase 2', period:'Months 3–6',  tag:'Expansion',    items:recs.slice(2,5)},
     {label:'Phase 3', period:'Months 6–12', tag:'Optimisation', items:recs.slice(5)},
   ].filter(p=>p.items.length>0);
 
+  // ── BENCHMARK DATA (sourced from public research) ──────────────────────────
+  // Keyed by process id — impact stats cited from McKinsey, Gartner, Deloitte, BCG, PwC
+  const BENCHMARKS = {
+    p65:{ kpis:[
+      {v:'70%', l:'reduction in invoice dispute cycle time', src:'Gartner 2024'},
+      {v:'30–40%', l:'DSO improvement with AI-driven AR', src:'McKinsey 2025'},
+      {v:'90%', l:'straight-through processing rate for PO invoices', src:'Gartner APIA Report 2024'},
+    ], context:'Companies pursuing end-to-end O2C automation achieve up to 25% cost savings — versus 5% or less from isolated tools.' },
+    p75:{ kpis:[
+      {v:'30%', l:'operating efficiency gains in advanced procurement', src:'McKinsey Procurement 2025'},
+      {v:'35%', l:'reduction in off-contract expenditure with digitised intake', src:'PwC 2024'},
+      {v:'27%', l:'faster procurement cycle times with orchestrated intake', src:'Deloitte CPO Survey 2024'},
+    ], context:'McKinsey identifies procurement as one of the highest-value automation domains, with 15–30% efficiency gains from autonomous category agents.' },
+    p55:{ kpis:[
+      {v:'50%', l:'reduction in HR onboarding time with AI', src:'McKinsey 2025'},
+      {v:'34%', l:'productivity gain for knowledge workers using AI tools', src:'MIT/Stanford 2024'},
+      {v:'25%', l:'increase in knowledge retention with AI-based learning', src:'McKinsey 2024'},
+    ], context:'AI-enabled HR automation consistently reduces administrative burden and improves employee experience scores within the first six months.' },
+    p90:{ kpis:[
+      {v:'52%', l:'ROI from automation reported by IT/finance departments', src:'Salesforce Survey 2024'},
+      {v:'40–75%', l:'reduction in manual accounting errors', src:'Capgemini/Gitnux 2024'},
+      {v:'7.7%', l:'operating profit improvement from AI-enabled workflows in 2024', src:'McKinsey 2024'},
+    ], context:'Record-to-Report automation delivers some of the fastest payback periods — typically under 12 months — due to the high volume and repetitive nature of GL transactions.' },
+    p80:{ kpis:[
+      {v:'18%', l:'ROI achieved by top-performing AI organisations', src:'McKinsey 2024'},
+      {v:'40%', l:'average cycle time reduction with workflow automation', src:'Arcade/Industry 2025'},
+      {v:'2.4x', l:'productivity advantage for companies with AI-led processes', src:'McKinsey 2025'},
+    ], context:'Project-to-Profit automation is especially impactful for professional services: margin leakage from manual milestone tracking and WIP management is typically 3–8%.' },
+    p10:{ kpis:[
+      {v:'25–35%', l:'inventory and asset optimisation improvement with AI', src:'McKinsey 2025'},
+      {v:'30–200%', l:'ROI range in first year of RPA/AI deployment', src:'ThinkAutomation 2024'},
+      {v:'4.8x', l:'faster labour productivity growth in AI-adopting industries', src:'Industry Analysis 2024'},
+    ], context:'Asset lifecycle automation reduces unplanned downtime and compliance gaps — particularly valuable in regulated industries where equipment failure has regulatory consequences.' },
+    p20:{ kpis:[
+      {v:'30%', l:'reduction in customer service operational costs with AI', src:'McKinsey 2025'},
+      {v:'40–70%', l:'efficiency gains in customer service automation', src:'HypeStudio 2025'},
+      {v:'6.7%', l:'average CSAT improvement post-AI agent deployment', src:'Industry Survey 2025'},
+    ], context:'Case-to-Resolution automation reduces first-response times and improves deflection rates, with leading organisations achieving 75%+ self-service resolution.' },
+    p85:{ kpis:[
+      {v:'83%', l:'of sales teams using AI saw revenue growth in 2024', src:'Salesforce 2024'},
+      {v:'78%', l:'shorter deal cycles for AI-assisted sales professionals', src:'Salesforce 2024'},
+      {v:'39%', l:'revenue increase for companies using AI in marketing & sales', src:'McKinsey 2025'},
+    ], context:'AI-powered pipeline management and quoting reduces manual effort in the sales cycle and improves forecast accuracy — the highest-value use case for mid-market sales teams.' },
+    p95:{ kpis:[
+      {v:'40–70%', l:'efficiency gains from service delivery automation', src:'HypeStudio 2025'},
+      {v:'75%', l:'of organisations see improved satisfaction after AI agent deployment', src:'Industry Survey 2025'},
+      {v:'20%', l:'productivity gain across service operations', src:'Bain/McKinsey 2025'},
+    ], context:'Service-to-Deliver automation drives first-time fix rates and SLA compliance — particularly impactful for field service organisations managing large technician networks.' },
+    p50:{ kpis:[
+      {v:'51%', l:'of organisations expect >5% revenue increase from gen AI', src:'McKinsey 2025'},
+      {v:'78%', l:'of enterprises use AI in at least one business function', src:'McKinsey State of AI 2025'},
+      {v:'3.7x', l:'average ROI per dollar invested in gen AI', src:'Industry Analysis 2024'},
+    ], context:'Strategic planning and S&OP automation improves forecast accuracy and reduces the time from insight to action — a persistent gap in enterprise planning cycles.' },
+    p30:{ kpis:[
+      {v:'37%', l:'cost reduction for companies using AI in marketing', src:'McKinsey 2025'},
+      {v:'39%', l:'revenue increase from AI-powered marketing', src:'McKinsey 2025'},
+      {v:'26%', l:'average conversion rate boost from AI personalisation', src:'Industry 2024'},
+    ], context:'Concept-to-Market automation compresses campaign cycles and improves targeting precision — the combination drives both cost efficiency and measurable revenue lift.' },
+    p40:{ kpis:[
+      {v:'2.5x', l:'revenue growth for companies with AI-led processes', src:'McKinsey 2025'},
+      {v:'13%', l:'of total AI business value comes from R&D', src:'BCG 2024'},
+      {v:'90%', l:'of companies observe more efficient workflows with gen AI', src:'UiPath 2025'},
+    ], context:'Design-to-Retire automation accelerates time-to-market for new products and improves portfolio decision quality through better data on lifecycle performance.' },
+    p70:{ kpis:[
+      {v:'40%', l:'cycle time reduction achievable with production automation', src:'Industry 2025'},
+      {v:'70–90%', l:'time reduction in document and process handling', src:'HypeStudio 2025'},
+      {v:'23%', l:'of total AI value generated by operations automation', src:'BCG 2024'},
+    ], context:'Plan-to-Produce automation delivers the highest volume ROI in manufacturing — MRP optimisation, quality control, and OEE improvement compound quickly at scale.' },
+    p60:{ kpis:[
+      {v:'25–35%', l:'improvement in inventory optimisation with AI', src:'McKinsey 2025'},
+      {v:'40%', l:'reduction in manual errors across warehouse operations', src:'Capgemini 2024'},
+      {v:'47%', l:'of total automation ROI from operations functions', src:'Salesforce Survey 2024'},
+    ], context:'Inventory-to-Deliver automation reduces carrying costs, improves on-shelf availability, and cuts logistics waste — measurable within the first quarter of deployment.' },
+    p99:{ kpis:[
+      {v:'126%', l:'faster task completion for developers using AI tools', src:'McKinsey 2025'},
+      {v:'38%', l:'compliance task time reduction of over 50% using AI', src:'McKinsey 2025'},
+      {v:'93%', l:'of IT executives express strong interest in agentic automation', src:'UiPath Agentic AI Report 2025'},
+    ], context:'Administer-to-Operate automation underpins all other processes — system reliability, security automation, and release management directly affect the ROI of every other domain.' },
+  };
+
+  // Build benchmark section for top recommended processes
+  const benchmarkHTML = recs.slice(0,5).map(r => {
+    const bm = BENCHMARKS[r.id] || {kpis:[],context:''};
+    return `
+      <div style="border:1px solid var(--border);border-radius:5px;margin-bottom:8px;overflow:hidden">
+        <div style="display:flex;align-items:center;gap:8px;padding:7px 10px;background:var(--surface2);border-bottom:1px solid var(--border)">
+          <span style="font-size:13px">${r.proc.icon}</span>
+          <span style="font-size:11px;font-weight:600;color:var(--text)">${r.proc.name}</span>
+          <span style="font-size:9px;font-family:var(--mono);color:var(--muted);margin-left:auto">${r.proc.num}</span>
+        </div>
+        <div style="padding:8px 10px">
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:8px">
+            ${bm.kpis.map(k=>`
+              <div style="background:var(--bg);border:1px solid var(--border);border-radius:4px;padding:6px 8px">
+                <div style="font-size:14px;font-weight:700;color:${col};font-family:var(--mono);line-height:1.2">${k.v}</div>
+                <div style="font-size:9px;color:var(--muted);line-height:1.4;margin-top:2px">${k.l}</div>
+                <div style="font-size:8px;color:var(--border);margin-top:3px;font-family:var(--mono)">${k.src}</div>
+              </div>`).join('')}
+          </div>
+          ${bm.context?`<div style="font-size:10px;color:var(--muted);line-height:1.6;font-style:italic;border-top:1px solid var(--border);padding-top:6px">${bm.context}</div>`:''}
+        </div>
+      </div>`;
+  }).join('');
+
   $('assess-panel').innerHTML=`
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
       <div style="font-size:12px;font-weight:700;color:var(--text);font-family:'Syne',sans-serif">AI Readiness Report</div>
       <button class="a-back" onclick="assessStep=0;assessData={};renderAssess()">Start over</button>
     </div>
 
     <!-- Meta strip -->
-    <div style="background:var(--surface2);border:1px solid var(--border);border-radius:5px;padding:8px 11px;margin-bottom:12px;display:flex;gap:12px;flex-wrap:wrap">
-      <div style="font-size:10px;color:var(--muted);font-family:var(--mono)">${indLabel}</div>
-      <div style="font-size:10px;color:var(--border)">|</div>
-      <div style="font-size:10px;color:var(--muted);font-family:var(--mono)">${sizeLabel}</div>
-      <div style="font-size:10px;color:var(--border)">|</div>
-      <div style="font-size:10px;color:var(--muted);font-family:var(--mono)">AI: ${aiLabel}</div>
-      <div style="font-size:10px;color:var(--border)">|</div>
-      <div style="font-size:10px;color:var(--muted);font-family:var(--mono)">${date}</div>
+    <div style="background:var(--surface2);border:1px solid var(--border);border-radius:5px;padding:7px 11px;margin-bottom:10px;display:flex;gap:10px;flex-wrap:wrap">
+      <span style="font-size:10px;color:var(--muted);font-family:var(--mono)">${indLabel}</span>
+      <span style="font-size:10px;color:var(--border)">|</span>
+      <span style="font-size:10px;color:var(--muted);font-family:var(--mono)">${sizeLabel}</span>
+      <span style="font-size:10px;color:var(--border)">|</span>
+      <span style="font-size:10px;color:var(--muted);font-family:var(--mono)">AI maturity: ${aiLabel}</span>
+      <span style="font-size:10px;color:var(--border)">|</span>
+      <span style="font-size:10px;color:var(--muted);font-family:var(--mono)">${date}</span>
     </div>
 
     <!-- KPI row -->
@@ -674,43 +775,50 @@ function renderAssessResult(){
       <div class="ar-metric"><div class="arv" style="color:${col}">€${(setup/1000).toFixed(0)}K</div><div class="arl">setup</div></div>
     </div>
 
-    <!-- Section: Recommended processes -->
+    <!-- Recommended processes -->
     <div style="font-size:10px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);margin-bottom:6px">Recommended Process Domains</div>
     <div style="margin-bottom:12px">
       ${recs.map((r,i)=>`
         <div style="display:flex;align-items:flex-start;gap:8px;padding:7px 0;border-bottom:1px solid var(--border)">
           <div style="width:20px;height:20px;border-radius:3px;background:${i<2?col:i<5?'color-mix(in srgb,'+col+' 30%,var(--surface2))':'var(--surface2)'};display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:${i<2?'#000':'var(--muted)'};flex-shrink:0;font-family:var(--mono);margin-top:1px">${i+1}</div>
           <div style="flex:1;min-width:0">
-            <div style="display:flex;align-items:center;gap:6px;margin-bottom:2px">
+            <div style="display:flex;align-items:center;gap:5px;margin-bottom:2px;flex-wrap:wrap">
               <span style="font-size:11px;font-weight:600;color:var(--text)">${r.proc.icon} ${r.proc.name}</span>
               <span style="font-size:9px;font-family:var(--mono);color:var(--muted);background:var(--surface2);padding:1px 5px;border-radius:3px;border:1px solid var(--border)">${r.proc.num}</span>
               ${i<2?`<span style="font-size:9px;font-family:var(--mono);color:#000;background:${col};padding:1px 6px;border-radius:3px">priority</span>`:''}
             </div>
-            <div style="font-size:10px;color:var(--muted);line-height:1.5">${r.proc.desc.split('.')[0]}.</div>
-            <div style="display:flex;gap:4px;margin-top:4px;flex-wrap:wrap">
-              ${r.proc.agents.filter(a=>a.role!=='orchestrator').map(a=>`<span style="font-size:9px;font-family:var(--mono);color:var(--muted);border:1px solid var(--border);padding:1px 6px;border-radius:3px">${a.icon} ${a.label}</span>`).join('')}
+            <div style="font-size:10px;color:var(--muted);line-height:1.5;margin-bottom:4px">${r.proc.desc.split('.')[0]}.</div>
+            <div style="display:flex;gap:4px;flex-wrap:wrap">
+              ${r.proc.agents.filter(a=>a.role!=='orchestrator').map(a=>`<span style="font-size:9px;font-family:var(--mono);color:var(--muted);border:1px solid var(--border);padding:1px 5px;border-radius:3px">${a.icon} ${a.label}</span>`).join('')}
             </div>
           </div>
         </div>`).join('')}
     </div>
 
-    <!-- Section: Agent inventory -->
-    <div style="font-size:10px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);margin-bottom:6px">Agent Inventory (${totalAgentCount} types)</div>
+    <!-- Industry benchmarks -->
+    <div style="font-size:10px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);margin-bottom:6px">
+      Expected Impact — Industry Benchmarks
+      <span style="font-size:9px;font-weight:400;text-transform:none;letter-spacing:0;margin-left:6px;color:var(--border)">McKinsey · Gartner · Deloitte · PwC · BCG</span>
+    </div>
+    ${benchmarkHTML}
+
+    <!-- Agent inventory -->
+    <div style="font-size:10px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);margin-bottom:6px;margin-top:4px">Agent Inventory (${totalAgentCount} types)</div>
     <div style="margin-bottom:12px;display:flex;flex-direction:column;gap:4px">
       ${uniqueAgents.map(a=>`
         <div style="display:flex;align-items:center;gap:8px;padding:5px 8px;background:var(--surface2);border:1px solid var(--border);border-radius:4px">
           <span style="font-size:14px;flex-shrink:0">${a.icon}</span>
           <div style="flex:1;min-width:0">
             <div style="font-size:11px;font-weight:600;color:var(--text)">${a.label}</div>
-            <div style="font-size:10px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${a.processes.slice(0,3).join(', ')}${a.processes.length>3?' +'+( a.processes.length-3)+' more':''}</div>
+            <div style="font-size:10px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${a.processes.slice(0,3).join(', ')}${a.processes.length>3?' +'+( a.processes.length-3)+' more':''}</div>
           </div>
-          <div style="font-size:9px;font-family:var(--mono);color:var(--muted);background:var(--surface);padding:2px 6px;border-radius:3px;flex-shrink:0">${a.role==='orchestrator'?'orchestrator':'specialist'}</div>
+          <div style="font-size:9px;font-family:var(--mono);color:var(--muted);background:var(--surface);padding:2px 6px;border-radius:3px;flex-shrink:0;border:1px solid var(--border)">${a.role==='orchestrator'?'orchestrator':'specialist'}</div>
         </div>`).join('')}
     </div>
 
-    <!-- Section: Implementation roadmap -->
+    <!-- Roadmap -->
     <div style="font-size:10px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);margin-bottom:6px">Implementation Roadmap</div>
-    <div style="margin-bottom:12px;display:flex;flex-direction:column;gap:6px">
+    <div style="margin-bottom:12px;display:flex;flex-direction:column;gap:5px">
       ${phases.map((ph,pi)=>`
         <div style="border:1px solid var(--border);border-radius:5px;overflow:hidden">
           <div style="display:flex;align-items:center;gap:8px;padding:6px 10px;background:${pi===0?'color-mix(in srgb,'+col+' 8%,var(--surface2))':'var(--surface2)'}">
@@ -724,31 +832,25 @@ function renderAssessResult(){
         </div>`).join('')}
     </div>
 
-    <!-- Section: Oversight -->
+    <!-- Oversight -->
     <div style="background:var(--surface2);border:1px solid var(--border);border-radius:5px;padding:8px 11px;margin-bottom:12px">
-      <div style="font-size:10px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);margin-bottom:4px">Oversight Model</div>
+      <div style="font-size:10px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);margin-bottom:3px">Oversight Model</div>
       <div style="font-size:11px;color:var(--text)">${assessData.oversight||'—'}</div>
     </div>
 
-    <!-- Section: Checklist -->
+    <!-- Checklist -->
     <div style="font-size:10px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);margin-bottom:6px">Preparation Checklist</div>
-    <div style="display:flex;flex-direction:column;gap:3px">
-      ${[
-        'D365 API credentials and environment access',
-        'Process owner sign-off per domain',
-        'Data quality baseline completed',
-        'Azure AI Foundry subscription provisioned',
-        'Change management plan in place',
-        'Governance and escalation matrix defined',
-        'Security and compliance review completed',
-        'Integration architecture sign-off',
-      ].map(item=>`
+    <div style="display:flex;flex-direction:column;gap:3px;margin-bottom:16px">
+      ${['D365 API credentials and environment access','Process owner sign-off per domain','Data quality baseline completed','Azure AI Foundry subscription provisioned','Change management plan in place','Governance and escalation matrix defined','Security and compliance review completed','Integration architecture sign-off'].map(item=>`
         <div style="display:flex;align-items:center;gap:7px;padding:4px 0;border-bottom:1px solid var(--border)">
-          <div style="width:14px;height:14px;border:1px solid var(--border);border-radius:3px;flex-shrink:0;display:flex;align-items:center;justify-content:center">
-            <div style="width:6px;height:6px;border-radius:1px;background:transparent"></div>
-          </div>
+          <div style="width:14px;height:14px;border:1px solid var(--border);border-radius:3px;flex-shrink:0"></div>
           <span style="font-size:11px;color:var(--muted)">${item}</span>
         </div>`).join('')}
+    </div>
+
+    <!-- Disclaimer -->
+    <div style="font-size:9px;color:var(--border);line-height:1.6;border-top:1px solid var(--border);padding-top:8px">
+      Cost and agent estimates are indicative and based on industry benchmarks. Actual results depend on implementation scope, data readiness, and organisational change management. Benchmark statistics sourced from publicly available research: McKinsey State of AI 2025, Gartner Procurement/APIA Reports 2024–2025, Deloitte CPO Survey 2024, PwC Procurement Research 2024, BCG AI Value Report 2024, Salesforce State of Sales 2024, UiPath Agentic AI Report 2025.
     </div>`;
 }
 
